@@ -1,0 +1,64 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Auth helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        request.auth.token.email == "thanhwilshere96@gmail.com"
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Category Validation
+    function isValidCategory(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() <= 100
+          && data.icon is string && data.icon.size() > 0
+          && data.description is string && data.description.size() <= 500;
+    }
+
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow create: if isAdmin() && isValidCategory(request.resource.data);
+      allow update: if isAdmin() && isValidCategory(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    // Prompt Validation
+    function isValidPrompt(data) {
+      return data.categoryId is string && exists(/databases/$(database)/documents/categories/$(data.categoryId))
+          && data.title is string && data.title.size() > 0 && data.title.size() <= 200
+          && data.prompt is string && data.prompt.size() > 0 && data.prompt.size() <= 5000
+          && data.description is string && data.description.size() <= 1000
+          && data.howToUse is string
+          && data.resultSample is string
+          && (!('resultImageUrl' in data) || (data.resultImageUrl is string && data.resultImageUrl.size() <= 1048576));
+    }
+
+    match /prompts/{promptId} {
+      allow read: if true;
+      allow create: if isAdmin() && isValidPrompt(request.resource.data)
+                    && request.resource.data.createdAt == request.time;
+      allow update: if isAdmin() && isValidPrompt(request.resource.data)
+                    && request.resource.data.updatedAt == request.time;
+      allow delete: if isAdmin();
+    }
+
+    match /admins/{adminId} {
+      allow read: if isSignedIn();
+      allow write: if false; // Only manageable via console or service account for safety
+    }
+  }
+}

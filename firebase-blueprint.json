@@ -1,0 +1,56 @@
+{
+  "entities": {
+    "Category": {
+      "title": "Category",
+      "description": "Danh mục phân loại các prompt",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Tên danh mục" },
+        "icon": { "type": "string", "description": "Tên icon Lucide" },
+        "description": { "type": "string", "description": "Mô tả ngắn" },
+        "order": { "type": "number", "description": "Thứ tự hiển thị" }
+      },
+      "required": ["name", "icon", "description"]
+    },
+    "Prompt": {
+      "title": "Prompt",
+      "description": "Câu lệnh mẫu và ví dụ",
+      "type": "object",
+      "properties": {
+        "categoryId": { "type": "string", "description": "ID của danh mục" },
+        "title": { "type": "string", "description": "Tiêu đề mẫu prompt" },
+        "description": { "type": "string", "description": "Mô tả ngắn gọn" },
+        "prompt": { "type": "string", "description": "Nội dung câu lệnh" },
+        "howToUse": { "type": "string", "description": "Hướng dẫn sử dụng" },
+        "resultSample": { "type": "string", "description": "Kết quả mẫu" },
+        "resultImageUrl": { "type": "string", "description": "Link ảnh kết quả mẫu (hoặc base64)" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["categoryId", "title", "prompt", "howToUse"]
+    },
+    "Admin": {
+      "title": "Admin",
+      "description": "Danh sách người quản trị",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "description": "Email người quản trị" }
+      },
+      "required": ["email"]
+    }
+  },
+  "firestore": {
+    "/categories/{categoryId}": {
+      "schema": "Category",
+      "description": "Lưu trữ các danh mục"
+    },
+    "/prompts/{promptId}": {
+      "schema": "Prompt",
+      "description": "Lưu trữ các mẫu prompt"
+    },
+    "/admins/{adminId}": {
+      "schema": "Admin",
+      "description": "Lưu trữ quyền quản trị"
+    }
+  }
+}
