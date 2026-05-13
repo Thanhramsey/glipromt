@@ -119,12 +119,12 @@ export default function App() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  if (isAdminView) return <AdminPanel />;
+  if (isAdminView) return <AdminPanel darkMode={darkMode} setDarkMode={setDarkMode} />;
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] dark:bg-gray-900 text-[#1A1A1A] dark:text-gray-100 font-sans selection:bg-blue-100 dark:selection:bg-blue-900/50">
+    <div className="min-h-screen selection:bg-blue-100 dark:selection:bg-blue-900/50">
       {/* Header */}
-      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40">
+      <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-3">
@@ -141,7 +141,7 @@ export default function App() {
               <input 
                 type="text" 
                 placeholder="Tìm kiếm mẫu prompt..."
-                className="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400 transition-all text-gray-900 dark:text-gray-100"
+                className="w-full bg-gray-100 dark:bg-gray-800 border border-transparent dark:border-gray-700 rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400 transition-all text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -252,7 +252,7 @@ export default function App() {
                 className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all ${
                   selectedCategoryId === null 
                   ? 'bg-blue-600 text-white shadow-md' 
-                  : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-blue-400 dark:hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400'
+                  : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:border-blue-400 dark:hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400'
                 }`}
               >
                 Tất cả
@@ -264,7 +264,7 @@ export default function App() {
                   className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all flex items-center gap-2 ${
                     selectedCategoryId === cat.id 
                     ? 'bg-blue-600 text-white shadow-md' 
-                    : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-blue-400 dark:hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400'
+                    : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:border-blue-400 dark:hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400'
                   }`}
                 >
                   <CategoryIcon name={cat.icon} className="w-4 h-4" />
@@ -286,11 +286,11 @@ export default function App() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ duration: 0.3, delay: idx * 0.05 }}
-                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden shadow-sm hover:shadow-md dark:hover:shadow-2xl/20 transition-all group flex flex-col h-full"
+                className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-md dark:hover:shadow-2xl/20 transition-all group flex flex-col h-full"
               >
                 <div className="p-6 flex-1">
                   <div className="flex justify-between items-start mb-4">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-800">
                       {categories.find(c => c.id === p.categoryId)?.name || 'Prompt'}
                     </span>
                     <button 
@@ -307,7 +307,7 @@ export default function App() {
                     {p.description}
                   </p>
                 </div>
-                <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-100 dark:border-gray-700 mt-auto">
+                <div className="px-6 py-4 bg-gray-50 dark:bg-gray-950/50 border-t border-gray-100 dark:border-gray-800 mt-auto">
                   <button 
                     onClick={() => setSelectedPrompt(p)}
                     className="w-full text-left text-sm font-bold text-blue-600 dark:text-blue-400 flex items-center justify-between group/btn"
@@ -378,7 +378,7 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-12 mt-20 text-center">
+      <footer className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 py-12 mt-20 text-center">
         <div className="max-w-7xl mx-auto px-4">
           <LayoutGrid className="w-8 h-8 text-blue-600 dark:text-blue-400 mx-auto mb-4" />
           <p className="text-gray-900 dark:text-white font-bold mb-2">AI Trợ Lý Cán Bộ</p>
@@ -402,7 +402,7 @@ export default function App() {
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto relative z-10 shadow-2xl"
+              className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto relative z-10 shadow-2xl border border-transparent dark:border-gray-800"
             >
               <div className="p-8">
                 <div className="flex justify-between items-start mb-6">
@@ -462,7 +462,7 @@ export default function App() {
                   )}
                 </div>
 
-                <div className="mt-8 pt-8 border-t border-gray-100">
+                <div className="mt-8 pt-8 border-t border-gray-100 dark:border-gray-800">
                   <button 
                     onClick={() => copyToClipboard(selectedPrompt.prompt, 'modal')}
                     className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20"

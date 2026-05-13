@@ -3,10 +3,11 @@ import {
   db, auth, googleProvider, signInWithPopup, signOut, onAuthStateChanged, 
   collection, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, 
   serverTimestamp, handleFirestoreError, OperationType, User, doc,
-  browserPopupRedirectResolver
+  browserPopupRedirectResolver, writeBatch
 } from '../lib/firebase';
-import { Plus, Edit2, Trash2, Save, X, LogIn, LogOut, Database, AlertCircle, Image as ImageIcon, Upload } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, LogIn, LogOut, Database, AlertCircle, Image as ImageIcon, Upload, Sun, Moon, FileSpreadsheet, FolderTree, ChevronRight, Download, CheckSquare, Square } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import * as XLSX from 'xlsx';
 
 const SEED_CATEGORIES = [
   {
@@ -99,7 +100,7 @@ Cần tập trung vào: Sản xuất nông nghiệp, Thu ngân sách và An ninh
   }
 ];
 
-export default function AdminPanel() {
+export default function AdminPanel({ darkMode, setDarkMode }: { darkMode: boolean; setDarkMode: (v: boolean) => void }) {
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -108,6 +109,12 @@ export default function AdminPanel() {
   
   const [categories, setCategories] = useState<any[]>([]);
   const [prompts, setPrompts] = useState<any[]>([]);
+  const [selectedPromptIds, setSelectedPromptIds] = useState<string[]>([]);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
+  
+  const [activeTab, setActiveTab] = useState<'prompts' | 'categories'>('prompts');
+  const [editingCategory, setEditingCategory] = useState<any>(null);
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
   
   const [editingPrompt, setEditingPrompt] = useState<any>(null);
   const [isAddingPrompt, setIsAddingPrompt] = useState(false);
@@ -126,7 +133,9 @@ export default function AdminPanel() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
       setUser(u);
-      setIsAdmin(!!u); 
+      // Check if user is truly admin based on email in firestore rules
+      const adminEmail = "thanhwilshere96@gmail.com";
+      setIsAdmin(u?.email === adminEmail); 
       setLoading(false);
     });
     return () => unsubscribe();
@@ -153,18 +162,25 @@ export default function AdminPanel() {
     setIsLoggingIn(true);
     setLoginError(null);
     try {
+      console.log('Bắt đầu đăng nhập...');
       // Explicitly pass resolver if standard one is failing in this environment
       await signInWithPopup(auth, googleProvider, browserPopupRedirectResolver);
+      console.log('Đăng nhập thành công');
     } catch (error: any) {
-      console.error(error);
-      if (error.code === 'auth/popup-blocked') {
+      console.error('Lỗi đăng nhập chi tiết:', error);
+      const errorCode = error.code || 'unknown';
+      const errorMessage = error.message || '';
+      
+      if (errorCode === 'auth/popup-blocked') {
         setLoginError('Vui lòng cho phép hiện cửa sổ con (popup) trên trình duyệt để đăng nhập.');
-      } else if (error.code === 'auth/cancelled-popup-request') {
+      } else if (errorCode === 'auth/cancelled-popup-request') {
         setLoginError('Thao tác đăng nhập đã bị hủy. Vui lòng thử lại.');
-      } else if (error.code === 'auth/popup-closed-by-user') {
+      } else if (errorCode === 'auth/popup-closed-by-user') {
         setLoginError('Cửa sổ đăng nhập đã bị đóng trước khi hoàn tất.');
+      } else if (errorCode === 'auth/unauthorized-domain') {
+        setLoginError(`Tên miền này chưa được cấp phép trong Firebase Console. (Lỗi: ${errorCode})`);
       } else {
-        setLoginError('Có lỗi xảy ra khi đăng nhập. Hãy tải lại trang và thử lại.');
+        setLoginError(`Lỗi đăng nhập (${errorCode}): ${errorMessage || 'Hãy tải lại trang và thử lại.'}`);
       }
     } finally {
       setIsLoggingIn(false);
@@ -214,6 +230,103 @@ export default function AdminPanel() {
     });
   };
 
+  const saveCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (editingCategory.id) {
+        const { id, ...saveData } = editingCategory;
+        await updateDoc(doc(db, 'categories', id), saveData);
+      } else {
+        await addDoc(collection(db, 'categories'), {
+          ...editingCategory,
+          order: categories.length
+        });
+      }
+      setEditingCategory(null);
+      setIsAddingCategory(false);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, 'categories');
+    }
+  };
+
+  const deleteCategory = (id: string) => {
+    const hasPrompts = prompts.some(p => p.categoryId === id);
+    if (hasPrompts) {
+      alert('Không thể xóa danh mục này vì vẫn còn các prompt thuộc về nó. Hãy xóa hoặc chuyển các prompt đó trước.');
+      return;
+    }
+
+    setConfirmState({
+      show: true,
+      title: 'Xác nhận xóa danh mục',
+      message: 'Bạn có chắc chắn muốn xóa danh mục này? Thao tác này không thể hoàn tác.',
+      onConfirm: async () => {
+        try {
+          await deleteDoc(doc(db, 'categories', id));
+          setConfirmState({ ...confirmState, show: false });
+        } catch (error) {
+          handleFirestoreError(error, OperationType.DELETE, 'categories');
+        }
+      }
+    });
+  };
+
+  const handleImportExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data = XLSX.utils.sheet_to_json(ws);
+
+        if (data.length === 0) {
+          alert('File Excel trống hoặc không đúng định dạng.');
+          return;
+        }
+
+        setConfirmState({
+          show: true,
+          title: 'Xác nhận Import',
+          message: `Tìm thấy ${data.length} mẫu prompt trong file. Bạn có chắc chắn muốn nạp toàn bộ vào cơ sở dữ liệu không?`,
+          onConfirm: async () => {
+            let count = 0;
+            for (const row of data as any[]) {
+              // Map columns (adjust if needed)
+              const mappedPrompt = {
+                title: row['Tiêu đề'] || row['title'] || 'Không có tiêu đề',
+                description: row['Mô tả'] || row['description'] || '',
+                prompt: row['Câu lệnh'] || row['prompt'] || '',
+                howToUse: row['Hướng dẫn'] || row['howToUse'] || '',
+                resultSample: row['Kết quả mẫu'] || row['resultSample'] || '',
+                categoryId: categories.find(c => c.name === (row['Danh mục'] || row['category']))?.id || categories[0]?.id || '',
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp()
+              };
+
+              if (mappedPrompt.prompt) {
+                await addDoc(collection(db, 'prompts'), mappedPrompt);
+                count++;
+              }
+            }
+            alert(`Nạp thành công ${count} mẫu prompt!`);
+            setConfirmState({ ...confirmState, show: false });
+          }
+        });
+      } catch (error) {
+        console.error('Lỗi khi đọc file Excel:', error);
+        alert('Có lỗi xảy ra khi xử lý file Excel.');
+      }
+    };
+    reader.readAsBinaryString(file);
+    // Reset input
+    e.target.value = '';
+  };
+
   const savePrompt = async (e: React.FormEvent) => {
     e.preventDefault();
     const data = {
@@ -236,18 +349,63 @@ export default function AdminPanel() {
     }
   };
 
+  const downloadSampleExcel = () => {
+    const data = [
+      {
+        'Tiêu đề': 'Ví dụ: Viết báo cáo tuần',
+        'Mô tả': 'Hỗ trợ viết báo cáo công việc hàng tuần',
+        'Câu lệnh': 'Hãy viết báo cáo tuần dựa trên các thông tin sau: [Thông tin công việc]',
+        'Hướng dẫn': 'Bấm vào sao chép, dán vào ChatGPT và cung cấp nội dung công việc.',
+        'Kết quả mẫu': '[Mẫu báo cáo hoàn thiện]',
+        'Danh mục': categories[0]?.name || 'Hành chính'
+      }
+    ];
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Sample Prompts");
+    XLSX.writeFile(wb, "mau_import_prompt.xlsx");
+  };
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 800000) {
-      alert('Kích thước ảnh quá lớn (vui lòng chọn ảnh < 800KB)');
-      return;
-    }
-
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setEditingPrompt({ ...editingPrompt, resultImageUrl: reader.result as string });
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        const MAX_SIZE = 500 * 1024; // 500KB
+        let quality = 0.8;
+        
+        // If file is very large, reduce dimensions first to avoid huge memory usage
+        if (file.size > MAX_SIZE) {
+          const scale = Math.sqrt(MAX_SIZE / file.size) * 1.5; // Heuristic scale
+          if (scale < 1) {
+            width *= scale;
+            height *= scale;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+
+        let base64 = canvas.toDataURL('image/jpeg', quality);
+        
+        // Binary search or iterative reduction for precision if still over limit
+        while (base64.length * 0.75 > MAX_SIZE && quality > 0.1) {
+          quality -= 0.15;
+          base64 = canvas.toDataURL('image/jpeg', quality);
+        }
+
+        setEditingPrompt({ ...editingPrompt, resultImageUrl: base64 });
+      };
+      img.src = event.target?.result as string;
     };
     reader.readAsDataURL(file);
   };
@@ -270,11 +428,113 @@ export default function AdminPanel() {
     });
   };
 
+  const toggleSelectAll = () => {
+    if (selectedPromptIds.length === prompts.length) {
+      setSelectedPromptIds([]);
+    } else {
+      setSelectedPromptIds(prompts.map(p => p.id));
+    }
+  };
+
+  const toggleSelectPrompt = (id: string) => {
+    setSelectedPromptIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const deleteSelectedPrompts = () => {
+    setConfirmState({
+      show: true,
+      title: 'Xác nhận xóa hàng loạt',
+      message: `Bạn có chắc chắn muốn xóa ${selectedPromptIds.length} mục đã chọn? Thao tác này không thể hoàn tác.`,
+      onConfirm: async () => {
+        try {
+          const batch = writeBatch(db);
+          selectedPromptIds.forEach(id => {
+            batch.delete(doc(db, 'prompts', id));
+          });
+          await batch.commit();
+          setSelectedPromptIds([]);
+          setConfirmState({ ...confirmState, show: false });
+        } catch (error) {
+          handleFirestoreError(error, OperationType.DELETE, 'prompts_bulk');
+        }
+      }
+    });
+  };
+
+  const toggleSelectAllCategories = () => {
+    if (selectedCategoryIds.length === categories.length) {
+      setSelectedCategoryIds([]);
+    } else {
+      setSelectedCategoryIds(categories.map(c => c.id));
+    }
+  };
+
+  const toggleSelectCategory = (id: string) => {
+    setSelectedCategoryIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const deleteSelectedCategories = () => {
+    setConfirmState({
+      show: true,
+      title: 'Xác nhận xóa hàng loạt danh mục',
+      message: `Bạn có chắc chắn muốn xóa ${selectedCategoryIds.length} danh mục đã chọn? Các prompts thuộc danh mục này sẽ không bị xóa nhưng sẽ mất danh mục.`,
+      onConfirm: async () => {
+        try {
+          const batch = writeBatch(db);
+          selectedCategoryIds.forEach(id => {
+            batch.delete(doc(db, 'categories', id));
+          });
+          await batch.commit();
+          setSelectedCategoryIds([]);
+          setConfirmState({ ...confirmState, show: false });
+        } catch (error) {
+          handleFirestoreError(error, OperationType.DELETE, 'categories_bulk');
+        }
+      }
+    });
+  };
+
   if (loading) return <div className="p-20 text-center dark:text-gray-400">Đang kiểm tra quyền...</div>;
+
+  if (user && !isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 px-4">
+        <div className="bg-white dark:bg-gray-900 p-8 rounded-3xl shadow-xl max-w-md w-full text-center border border-transparent dark:border-gray-800">
+          <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <AlertCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
+          </div>
+          <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Từ chối truy cập</h2>
+          <p className="text-gray-500 dark:text-gray-400 mb-8 text-sm">
+            Tài khoản <span className="font-bold text-gray-900 dark:text-white">{user.email}</span> không có quyền quản trị. 
+            Vui lòng đăng nhập bằng đúng tài khoản Admin.
+          </p>
+          <button 
+            onClick={handleLogout}
+            className="w-full bg-gray-900 dark:bg-gray-800 text-white py-4 rounded-2xl font-bold hover:bg-gray-800 transition-all shadow-lg"
+          >
+            Đăng xuất và thử lại
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 px-4">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 px-4 relative">
+        <div className="absolute top-8 right-8">
+          <button 
+            onClick={() => setDarkMode(!darkMode)}
+            className="p-2 border border-gray-200 dark:border-gray-800 rounded-full hover:bg-gray-50 dark:hover:bg-gray-800 transition-all text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-900 shadow-sm"
+            title={darkMode ? 'Chế độ sáng' : 'Chế độ tối'}
+          >
+            {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </button>
+        </div>
         <div className="bg-white dark:bg-gray-900 p-8 rounded-3xl shadow-xl max-w-md w-full text-center border border-transparent dark:border-gray-800">
           <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
             <Database className="w-8 h-8 text-blue-600 dark:text-blue-400" />
@@ -328,6 +588,13 @@ export default function AdminPanel() {
             </button>
           </div>
           <div className="flex items-center gap-4 text-sm">
+            <button 
+              onClick={() => setDarkMode(!darkMode)}
+              className="p-2 border border-gray-200 dark:border-gray-700 rounded-full hover:bg-gray-50 dark:hover:bg-gray-800 transition-all text-gray-500 dark:text-gray-400"
+              title={darkMode ? 'Chế độ sáng' : 'Chế độ tối'}
+            >
+              {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
             <span className="text-gray-500 dark:text-gray-400 hidden sm:inline">{user.email}</span>
             <button onClick={handleLogout} className="flex items-center gap-1 text-red-600 dark:text-red-400 font-bold hover:underline">
               <LogOut className="w-4 h-4" /> Thoát
@@ -350,35 +617,146 @@ export default function AdminPanel() {
           </div>
         )}
 
-        <div className="flex justify-between items-center mb-8">
-          <h2 className="text-2xl font-black text-gray-900 dark:text-white">Danh sách Prompt</h2>
-          <button 
-            onClick={() => {
-              setIsAddingPrompt(true);
-              setEditingPrompt({ title: '', description: '', prompt: '', howToUse: '', resultSample: '', categoryId: categories[0]?.id || '' });
-            }}
-            className="bg-gray-900 dark:bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-gray-800 dark:hover:bg-blue-700 transition-all"
-          >
-            <Plus className="w-5 h-5" /> Thêm mới
-          </button>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+          <div className="flex bg-white dark:bg-gray-900 p-1 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
+            <button 
+              onClick={() => setActiveTab('prompts')}
+              className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+                activeTab === 'prompts' 
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20' 
+                : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+              }`}
+            >
+              <Database className="w-4 h-4" /> Prompts
+            </button>
+            <button 
+              onClick={() => setActiveTab('categories')}
+              className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
+                activeTab === 'categories' 
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20' 
+                : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+              }`}
+            >
+              <FolderTree className="w-4 h-4" /> Danh mục
+            </button>
+          </div>
+
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            {activeTab === 'prompts' && (
+              <>
+                <button 
+                  onClick={downloadSampleExcel}
+                  className="flex-1 md:flex-none border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 px-5 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all bg-white dark:bg-gray-900"
+                >
+                  <Download className="w-5 h-5" /> Tải mẫu
+                </button>
+                <label className="flex-1 md:flex-none">
+                  <div className="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shadow-green-500/20">
+                    <FileSpreadsheet className="w-5 h-5" /> Import Excel
+                  </div>
+                  <input 
+                    type="file" 
+                    accept=".xlsx, .xls" 
+                    className="hidden" 
+                    onChange={handleImportExcel}
+                  />
+                </label>
+                <button 
+                  onClick={() => {
+                    setIsAddingPrompt(true);
+                    setEditingPrompt({ title: '', description: '', prompt: '', howToUse: '', resultSample: '', categoryId: categories[0]?.id || '' });
+                  }}
+                  className="flex-1 md:flex-none bg-gray-900 dark:bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-gray-800 dark:hover:bg-blue-700 transition-all shadow-lg"
+                >
+                  <Plus className="w-5 h-5" /> Thêm mới
+                </button>
+              </>
+            )}
+            {activeTab === 'categories' && (
+              <button 
+                onClick={() => {
+                  setIsAddingCategory(true);
+                  setEditingCategory({ name: '', icon: 'Box', description: '' });
+                }}
+                className="w-full md:w-auto bg-gray-900 dark:bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-gray-800 dark:hover:bg-blue-700 transition-all shadow-lg"
+              >
+                <Plus className="w-5 h-5" /> Thêm danh mục
+              </button>
+            )}
+          </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl overflow-hidden shadow-sm">
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
-              <tr>
-                <th className="px-6 py-4 text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">Tiêu đề</th>
-                <th className="px-6 py-4 text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest hidden md:table-cell">Danh mục</th>
-                <th className="px-6 py-4 text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest text-right">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-              {prompts.map((p) => (
-                <tr key={p.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
-                  <td className="px-6 py-4">
-                    <p className="font-bold text-gray-900 dark:text-white">{p.title}</p>
-                    <p className="text-xs text-gray-400 truncate max-w-xs">{p.description}</p>
-                  </td>
+        {activeTab === 'prompts' ? (
+          <div className="space-y-4">
+            <AnimatePresence>
+              {selectedPromptIds.length > 0 && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="bg-blue-600 text-white p-4 rounded-2xl flex items-center justify-between shadow-lg shadow-blue-500/20"
+                >
+                  <div className="flex items-center gap-4 px-2">
+                    <span className="font-black text-sm">ĐÃ CHỌN {selectedPromptIds.length} MỤC</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => setSelectedPromptIds([])}
+                      className="px-4 py-2 hover:bg-white/10 rounded-xl font-bold text-sm transition-all"
+                    >
+                      Hủy chọn
+                    </button>
+                    <button 
+                      onClick={deleteSelectedPrompts}
+                      className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-2 shadow-sm"
+                    >
+                      <Trash2 className="w-4 h-4" /> Xóa các mục này
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl overflow-hidden shadow-sm">
+              <table className="w-full text-left border-collapse">
+              <thead className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
+                <tr>
+                  <th className="pl-6 pr-2 py-4 w-12">
+                    <button 
+                      onClick={toggleSelectAll}
+                      className="text-gray-400 hover:text-blue-600 transition-colors flex items-center justify-center h-8 w-8 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+                    >
+                      {selectedPromptIds.length === prompts.length && prompts.length > 0 ? (
+                        <CheckSquare className="w-5 h-5 text-blue-600" />
+                      ) : (
+                        <Square className="w-5 h-5" />
+                      )}
+                    </button>
+                  </th>
+                  <th className="px-6 py-4 text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">Tiêu đề</th>
+                  <th className="px-6 py-4 text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest hidden md:table-cell">Danh mục</th>
+                  <th className="px-6 py-4 text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest text-right">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                {prompts.map((p) => (
+                  <tr key={p.id} className={`hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors ${selectedPromptIds.includes(p.id) ? 'bg-blue-50/30 dark:bg-blue-900/10' : ''}`}>
+                    <td className="pl-6 pr-2 py-4">
+                      <button 
+                        onClick={() => toggleSelectPrompt(p.id)}
+                        className="text-gray-400 hover:text-blue-600 transition-colors flex items-center justify-center h-8 w-8 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+                      >
+                        {selectedPromptIds.includes(p.id) ? (
+                          <CheckSquare className="w-5 h-5 text-blue-600" />
+                        ) : (
+                          <Square className="w-5 h-5" />
+                        )}
+                      </button>
+                    </td>
+                    <td className="px-6 py-4">
+                      <p className="font-bold text-gray-900 dark:text-white">{p.title}</p>
+                      <p className="text-xs text-gray-400 truncate max-w-xs">{p.description}</p>
+                    </td>
                   <td className="px-6 py-4 hidden md:table-cell text-sm text-gray-600 dark:text-gray-400">
                     {categories.find(c => c.id === p.categoryId)?.name || 'N/A'}
                   </td>
@@ -403,7 +781,170 @@ export default function AdminPanel() {
             </tbody>
           </table>
         </div>
+      </div>
+      ) : (
+          <div className="space-y-4">
+            <AnimatePresence>
+              {selectedCategoryIds.length > 0 && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="bg-blue-600 text-white p-4 rounded-2xl flex items-center justify-between shadow-lg shadow-blue-500/20"
+                >
+                  <div className="flex items-center gap-4 px-2">
+                    <span className="font-black text-sm text-white">ĐÃ CHỌN {selectedCategoryIds.length} DANH MỤC</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => setSelectedCategoryIds([])}
+                      className="px-4 py-2 hover:bg-white/10 rounded-xl font-bold text-sm transition-all"
+                    >
+                      Hủy chọn
+                    </button>
+                    <button 
+                      onClick={deleteSelectedCategories}
+                      className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-2 shadow-sm"
+                    >
+                      <Trash2 className="w-4 h-4" /> Xóa danh mục
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl overflow-hidden shadow-sm">
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
+                  <tr>
+                    <th className="pl-6 pr-2 py-4 w-12">
+                      <button 
+                        onClick={toggleSelectAllCategories}
+                        className="text-gray-400 hover:text-blue-600 transition-colors flex items-center justify-center h-8 w-8 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+                      >
+                        {selectedCategoryIds.length === categories.length && categories.length > 0 ? (
+                          <CheckSquare className="w-5 h-5 text-blue-600" />
+                        ) : (
+                          <Square className="w-5 h-5" />
+                        )}
+                      </button>
+                    </th>
+                    <th className="px-6 py-4 text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">Tên Danh Mục</th>
+                    <th className="px-6 py-4 text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest hidden md:table-cell">Mô tả</th>
+                    <th className="px-6 py-4 text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest text-right">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                  {categories.map((cat) => (
+                    <tr key={cat.id} className={`hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors ${selectedCategoryIds.includes(cat.id) ? 'bg-blue-50/30 dark:bg-blue-900/10' : ''}`}>
+                      <td className="pl-6 pr-2 py-4">
+                        <button 
+                          onClick={() => toggleSelectCategory(cat.id)}
+                          className="text-gray-400 hover:text-blue-600 transition-colors flex items-center justify-center h-8 w-8 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+                        >
+                          {selectedCategoryIds.includes(cat.id) ? (
+                            <CheckSquare className="w-5 h-5 text-blue-600" />
+                          ) : (
+                            <Square className="w-5 h-5" />
+                          )}
+                        </button>
+                      </td>
+                      <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                          <Database className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <p className="font-bold text-gray-900 dark:text-white">{cat.name}</p>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 hidden md:table-cell text-sm text-gray-600 dark:text-gray-400">
+                      {cat.description}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex justify-end gap-2 text-gray-400 font-bold">
+                        <button 
+                          onClick={() => setEditingCategory(cat)}
+                          className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg transition-all"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => deleteCategory(cat.id)}
+                          className="p-2 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 rounded-lg transition-all"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        )}
       </main>
+
+      {/* Category Edit Modal */}
+      {(editingCategory || isAddingCategory) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={() => { setEditingCategory(null); setIsAddingCategory(false); }} />
+          <div className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-lg relative z-10 shadow-2xl p-8 border border-transparent dark:border-gray-800">
+            <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-8">
+              {editingCategory?.id ? 'Chỉnh sửa Danh mục' : 'Thêm Danh mục mới'}
+            </h3>
+            
+            <form onSubmit={saveCategory} className="space-y-6">
+              <div>
+                <label className="block text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Tên danh mục</label>
+                <input 
+                  required
+                  className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-gray-900 dark:text-gray-100"
+                  value={editingCategory.name}
+                  onChange={e => setEditingCategory({...editingCategory, name: e.target.value})}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Icon (Lucide name)</label>
+                <input 
+                  required
+                  className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-gray-900 dark:text-gray-100"
+                  value={editingCategory.icon}
+                  onChange={e => setEditingCategory({...editingCategory, icon: e.target.value})}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">Mô tả</label>
+                <textarea 
+                  required
+                  rows={3}
+                  className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-gray-900 dark:text-gray-100"
+                  value={editingCategory.description}
+                  onChange={e => setEditingCategory({...editingCategory, description: e.target.value})}
+                />
+              </div>
+
+              <div className="flex gap-4 pt-4">
+                <button 
+                  type="submit"
+                  className="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20"
+                >
+                  <Save className="w-5 h-5" /> Lưu danh mục
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => { setEditingCategory(null); setIsAddingCategory(false); }}
+                  className="px-8 py-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-2xl font-bold hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
+                >
+                  Hủy
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Edit Modal */}
       {(editingPrompt || isAddingPrompt) && (

@@ -8,7 +8,7 @@ export default defineConfig(({mode}) => {
   return {
     // Nếu deploy lên GitHub Pages theo dạng username.github.io/repo-name/
     // Hãy đổi '/' thành '/repo-name/'
-    base: '/', 
+    base: '/THANH_VITE/', 
     plugins: [react(), tailwindcss()],
     define: {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
