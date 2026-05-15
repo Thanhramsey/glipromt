@@ -18,11 +18,63 @@ import {
   Database,
   X,
   Sun,
-  Moon
+  Moon,
+  Star,
+  Zap,
+  Sparkles,
+  Cpu,
+  Shield,
+  Clock,
+  ExternalLink
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { db, collection, onSnapshot, query, orderBy, handleFirestoreError, OperationType } from './lib/firebase';
 import AdminPanel from './components/AdminPanel';
+
+const AI_TOOLS = [
+  {
+    name: 'ChatGPT',
+    desc: 'Chuyên gia ngôn ngữ, hội thoại và giải quyết vấn đề đa năng.',
+    url: 'https://chat.openai.com',
+    color: 'from-emerald-500 to-teal-600',
+    tags: ['Hội thoại', 'Văn bản']
+  },
+  {
+    name: 'Gemini',
+    desc: 'AI thông minh nhất từ Google, tích hợp sâu vào hệ sinh thái làm việc.',
+    url: 'https://gemini.google.com',
+    color: 'from-blue-500 to-indigo-600',
+    tags: ['Google', 'Đa nhiệm']
+  },
+  {
+    name: 'NotebookLM',
+    desc: 'Trợ lý nghiên cứu và tóm tắt tài liệu, quản lý tri thức cá nhân.',
+    url: 'https://notebooklm.google.com',
+    color: 'from-purple-500 to-pink-600',
+    tags: ['Nghiên cứu', 'Tóm tắt']
+  },
+  {
+    name: 'Gamma AI',
+    desc: 'Tự động tạo bài thuyết trình, website và tài liệu chỉ từ gợi ý.',
+    url: 'https://gamma.app',
+    color: 'from-indigo-600 to-violet-700',
+    tags: ['Slides', 'Web']
+  },
+  {
+    name: 'Canva AI',
+    desc: 'Thiết kế hình ảnh và nội dung truyền thông trực quan với AI.',
+    url: 'https://www.canva.com',
+    color: 'from-cyan-500 to-blue-500',
+    tags: ['Thiết kế', 'Hình ảnh']
+  },
+  {
+    name: 'Grok',
+    desc: 'AI từ X (Twitter) với truy cập dữ liệu thời gian thực và hài hước.',
+    url: 'https://grok.x.ai',
+    color: 'from-gray-700 to-black',
+    tags: ['Tin tức', 'Real-time']
+  }
+];
 
 export interface PromptExample {
   id: string;
@@ -62,6 +114,7 @@ export default function App() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPrompt, setSelectedPrompt] = useState<PromptExample | null>(null);
+  const [modalFontSize, setModalFontSize] = useState(14);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -107,8 +160,10 @@ export default function App() {
   const filteredPrompts = useMemo(() => {
     return prompts.filter(p => {
       const matchCategory = !selectedCategoryId || p.categoryId === selectedCategoryId;
-      const matchSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          p.description.toLowerCase().includes(searchQuery.toLowerCase());
+      const searchLower = searchQuery.toLowerCase();
+      const matchSearch = p.title.toLowerCase().includes(searchLower) || 
+                          p.description.toLowerCase().includes(searchLower) ||
+                          p.prompt.toLowerCase().includes(searchLower);
       return matchCategory && matchSearch;
     });
   }, [selectedCategoryId, searchQuery, prompts]);
@@ -124,150 +179,218 @@ export default function App() {
   return (
     <div className="min-h-screen selection:bg-blue-100 dark:selection:bg-blue-900/50">
       {/* Header */}
-      <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 sticky top-0 z-40">
+      <header className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 sticky top-0 z-50 transition-colors">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+          <div className="flex justify-between items-center h-16 sm:h-20">
             <div className="flex items-center gap-3">
-              <div className="bg-blue-600 p-2 rounded-lg cursor-pointer transition-transform hover:scale-105" onClick={() => (window.location.hash = '')}>
-                <LayoutGrid className="w-6 h-6 text-white" />
+              <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-2.5 rounded-2xl cursor-pointer shadow-lg shadow-blue-500/30 transition-all hover:scale-110 active:scale-95" onClick={() => (window.location.hash = '')}>
+                <Cpu className="w-6 h-6 text-white" />
               </div>
-              <h1 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white hidden sm:block cursor-pointer" onClick={() => (window.location.hash = '')}>
-                AI Trợ Lý <span className="text-blue-600 dark:text-blue-400 underline decoration-blue-200 dark:decoration-blue-400/30">Cán Bộ</span>
+              <h1 className="text-xl font-black tracking-tight text-gray-900 dark:text-white hidden sm:block cursor-pointer" onClick={() => (window.location.hash = '')}>
+                AI<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400">PROMT</span>
               </h1>
             </div>
             
-            <div className="relative flex-1 max-w-md mx-4">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
+            <div className="relative flex-1 max-w-md mx-4 group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 group-focus-within:text-blue-500 transition-colors" />
               <input 
                 type="text" 
                 placeholder="Tìm kiếm mẫu prompt..."
-                className="w-full bg-gray-100 dark:bg-gray-800 border border-transparent dark:border-gray-700 rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400 transition-all text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                className="w-full bg-gray-100 dark:bg-gray-800/50 border border-transparent dark:border-gray-700/50 rounded-2xl py-2.5 pl-11 pr-11 text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/40 dark:focus:border-blue-400/30 transition-all text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
+              {searchQuery && (
+                <button 
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-all"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-4">
               <button 
                 onClick={() => setDarkMode(!darkMode)}
-                className="p-2 border border-gray-200 dark:border-gray-700 rounded-full hover:bg-gray-50 dark:hover:bg-gray-700 transition-all text-gray-500 dark:text-gray-400"
+                className="p-2.5 border border-gray-200 dark:border-gray-800 rounded-2xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-500 dark:text-gray-400 shadow-sm"
                 title={darkMode ? 'Chế độ sáng' : 'Chế độ tối'}
               >
-                {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
               </button>
               
               <button 
                 onClick={() => (window.location.hash = 'admin')}
-                className="p-2 border border-gray-200 dark:border-gray-700 rounded-full hover:bg-gray-50 dark:hover:bg-gray-700 transition-all text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400"
+                className="p-2.5 border border-gray-200 dark:border-gray-800 rounded-2xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 shadow-sm"
                 title="Quản trị"
               >
-                <Database className="w-4 h-4" />
+                <Database className="w-5 h-5" />
               </button>
               
               <a 
                 href="#huong-dan-chi-tiet" 
-                className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-4 py-2 rounded-full text-xs sm:text-sm font-bold hover:bg-gray-800 dark:hover:bg-gray-100 transition-all"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all shadow-lg shadow-blue-500/25 active:scale-95 hidden xs:block"
               >
-                Tư duy AI
+                #TƯ DUY AI
               </a>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         {/* Loading State */}
         {loading && (
           <div className="py-20 text-center animate-pulse">
-            <div className="w-12 h-12 bg-gray-200 rounded-full mx-auto mb-4" />
-            <div className="h-4 bg-gray-200 rounded w-48 mx-auto" />
+            <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-3xl mx-auto mb-6 flex items-center justify-center">
+              <Cpu className="w-8 h-8 text-blue-600 animate-spin" />
+            </div>
+            <div className="h-6 bg-gray-200 dark:bg-gray-800 rounded-full w-64 mx-auto mb-4" />
+            <div className="h-4 bg-gray-100 dark:bg-gray-800 rounded-full w-48 mx-auto" />
           </div>
         )}
 
         {/* Welcome Section */}
         {!loading && !selectedCategoryId && !searchQuery && (
-          <section className="mb-16">
-            <div className="grid lg:grid-cols-2 gap-12 items-center">
-              <div>
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5 }}
-                >
-                  <span className="inline-block px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full text-[10px] font-bold uppercase tracking-wider mb-4 border border-blue-100 dark:border-blue-900/50">
-                    Chính Phủ Số 2024
-                  </span>
-                  <h2 className="text-4xl sm:text-5xl font-black text-gray-900 dark:text-white leading-[1.1] mb-6">
-                    Nâng cao hiệu suất công việc với <span className="text-blue-600 dark:text-blue-400">Trí tuệ nhân tạo</span>
-                  </h2>
-                  <p className="text-lg text-gray-600 dark:text-gray-400 mb-8 max-w-lg">
-                    Thư viện prompt mẫu chuẩn hóa dành cho cán bộ cấp xã phường. Soạn thảo văn bản, thiết kế tuyên truyền và lập báo cáo chỉ trong vài phút.
-                  </p>
-                  <div className="flex flex-wrap gap-4">
-                    <button 
-                      onClick={() => setSelectedCategoryId(categories[0]?.id)}
-                      className="px-6 py-3 bg-blue-600 dark:bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20 flex items-center gap-2"
-                    >
-                      Khám phá ngay <ArrowRight className="w-4 h-4" />
-                    </button>
-                    <button 
-                      onClick={() => document.getElementById('huong-dan-chi-tiet')?.scrollIntoView({ behavior: 'smooth' })}
-                      className="px-6 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
-                    >
-                      Xem hướng dẫn
-                    </button>
-                  </div>
-                </motion.div>
-              </div>
-              
-              <div className="hidden lg:grid grid-cols-2 gap-4">
-                {categories.slice(0, 4).map((cat, idx) => (
-                  <motion.div
-                    key={cat.id}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.2 + idx * 0.1 }}
-                    onClick={() => setSelectedCategoryId(cat.id)}
-                    className="p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-sm hover:shadow-xl dark:hover:shadow-2xl/20 hover:-translate-y-1 transition-all cursor-pointer group"
-                    id={`cat-card-${cat.id}`}
+          <section className="mb-20">
+            <div className="relative rounded-[2.5rem] overflow-hidden bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-2xl p-8 sm:p-16">
+              {/* Abstract backgrounds */}
+              <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-blue-500/10 via-transparent to-transparent pointer-events-none" />
+              <div className="absolute -top-20 -right-20 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
+
+              <div className="relative z-10 grid lg:grid-cols-2 gap-12 items-center text-center lg:text-left">
+                <div>
+                  <motion.div 
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
                   >
-                    <div className="w-12 h-12 bg-gray-50 dark:bg-gray-900 rounded-xl flex items-center justify-center mb-4 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/30 transition-colors">
-                      <CategoryIcon name={cat.icon} className="w-6 h-6 text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
+                    <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-50/50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] mb-8 border border-blue-100 dark:border-blue-900/50 backdrop-blur-sm">
+                      <Sparkles className="w-3.5 h-3.5" /> Công Nghệ Số 2026
                     </div>
-                    <h3 className="font-bold text-gray-900 dark:text-white mb-2">{cat.name}</h3>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{cat.description}</p>
+                    <h2 className="text-5xl sm:text-7xl font-black text-gray-900 dark:text-white leading-[1] mb-8 tracking-tight">
+                      Sức Mạnh <span className="text-transparent bg-clip-text bg-gradient-to-br from-blue-600 to-indigo-600">AI</span> Cho Công Việc Hành Chính
+                    </h2>
+                    <p className="text-xl text-gray-600 dark:text-gray-400 mb-10 max-w-xl mx-auto lg:mx-0 leading-relaxed font-medium">
+                      Hệ thống thư viện Prompt (Câu lệnh) mẫu chuẩn hóa giúp cán bộ cấp cơ sở tối ưu hóa  hiệu năng soạn thảo văn bản và tuyên truyền.
+                    </p>
+                    <div className="flex flex-wrap gap-4 justify-center lg:justify-start">
+                      <button 
+                        onClick={() => setSelectedCategoryId(categories[0]?.id)}
+                        className="px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl font-black hover:scale-105 active:scale-95 transition-all shadow-xl shadow-blue-500/30 flex items-center gap-3 group"
+                      >
+                        BẮT ĐẦU NGAY <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                      </button>
+                      <button 
+                        onClick={() => document.getElementById('huong-dan-chi-tiet')?.scrollIntoView({ behavior: 'smooth' })}
+                        className="px-8 py-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-2xl font-black hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm flex items-center gap-2"
+                      >
+                        Học Cách Dùng
+                      </button>
+                    </div>
                   </motion.div>
-                ))}
+                </div>
+                
+                <div className="hidden lg:grid grid-cols-2 gap-4 relative">
+                  <div className="absolute inset-0 bg-blue-500/5 blur-[100px] rounded-full pointer-events-none" />
+                  {categories.slice(0, 4).length > 0 ? (
+                    categories.slice(0, 4).map((cat, idx) => (
+                      <motion.div
+                        key={cat.id}
+                        initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        transition={{ delay: 0.3 + idx * 0.1, duration: 0.5 }}
+                        onClick={() => setSelectedCategoryId(cat.id)}
+                        className="p-8 bg-white/70 dark:bg-gray-900/70 backdrop-blur-md border border-white/20 dark:border-gray-800/10 rounded-[2rem] shadow-xl hover:shadow-2xl dark:hover:shadow-blue-500/10 hover:-translate-y-2 transition-all cursor-pointer group relative overflow-hidden"
+                      >
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-blue-600/5 rounded-full -mr-12 -mt-12 group-hover:bg-blue-600/10 transition-colors" />
+                        <div className="w-14 h-14 bg-blue-50 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-600 group-hover:rotate-6 transition-all duration-500">
+                          <CategoryIcon name={cat.icon} className="w-7 h-7 text-blue-600 group-hover:text-white transition-colors" />
+                        </div>
+                        <h3 className="font-black text-xl text-gray-900 dark:text-white mb-3 tracking-tight">{cat.name}</h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed font-medium">10+ Mẫu Prompt</p>
+                      </motion.div>
+                    ))
+                  ) : (
+                    // Featured skeleton if no categories
+                    [1,2,3,4].map((i) => (
+                      <div key={i} className="p-8 bg-white/50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 h-48 rounded-[2rem]" />
+                    ))
+                  )}
+                </div>
               </div>
+            </div>
+
+            {/* Stats Section */}
+            <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4 px-4">
+              {[
+                { label: 'Prompt Chuẩn', val: '10+', icon: Sparkles, color: 'text-blue-600' },
+                { label: 'Tiết Kiệm Giờ', val: '80%', icon: Clock, color: 'text-indigo-600' },
+                { label: 'Bảo Mật', val: '100%', icon: Shield, color: 'text-emerald-600' },
+                { label: 'Tốc Độ', val: 'x2', icon: Zap, color: 'text-amber-500' },
+              ].map((stat, i) => (
+                <div key={i} className="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 text-center shadow-sm hover:shadow-md transition-shadow">
+                  <div className={`w-10 h-10 mx-auto mb-3 rounded-full flex items-center justify-center bg-gray-50 dark:bg-gray-800 ${stat.color}`}>
+                    <stat.icon className="w-5 h-5" />
+                  </div>
+                  <div className="text-2xl font-black text-gray-900 dark:text-white mb-1">{stat.val}</div>
+                  <div className="text-xs font-bold text-gray-400 uppercase tracking-widest">{stat.label}</div>
+                </div>
+              ))}
             </div>
           </section>
         )}
 
+        {/* Search Section (Mobile & Main visibility) */}
+        {!loading && (
+          <div className="mb-8 md:hidden">
+            <div className="relative group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+              <input 
+                type="text" 
+                placeholder="Tìm kiếm mẫu prompt..."
+                className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl py-4 pl-12 pr-12 shadow-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all dark:text-white"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              {searchQuery && (
+                <button 
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-all"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Categories Tabs */}
         {!loading && (
-          <section className="mb-10 overflow-x-auto pb-4 -mx-4 px-4 no-scrollbar">
-            <div className="flex gap-2 min-w-max">
+          <section className="mb-12 overflow-x-auto pb-4 -mx-4 px-4 no-scrollbar">
+            <div className="flex gap-3 min-w-max">
               <button
                 onClick={() => setSelectedCategoryId(null)}
-                className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all ${
+                className={`px-6 py-3 rounded-2xl text-sm font-black transition-all ${
                   selectedCategoryId === null 
-                  ? 'bg-blue-600 text-white shadow-md' 
-                  : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:border-blue-400 dark:hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400'
+                  ? 'bg-blue-600 text-white shadow-xl shadow-blue-500/20 active:scale-95' 
+                  : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:border-blue-400 dark:hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 hover:shadow-lg'
                 }`}
               >
-                Tất cả
+                Tất cả mẫu
               </button>
               {categories.map((cat) => (
                 <button
                   key={cat.id}
                   onClick={() => setSelectedCategoryId(cat.id)}
-                  className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all flex items-center gap-2 ${
+                  className={`px-6 py-3 rounded-2xl text-sm font-black transition-all flex items-center gap-2.5 ${
                     selectedCategoryId === cat.id 
-                    ? 'bg-blue-600 text-white shadow-md' 
-                    : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:border-blue-400 dark:hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400'
+                    ? 'bg-blue-600 text-white shadow-xl shadow-blue-500/20 active:scale-95' 
+                    : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:border-blue-400 dark:hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 hover:shadow-lg'
                   }`}
                 >
-                  <CategoryIcon name={cat.icon} className="w-4 h-4" />
+                  <CategoryIcon name={cat.icon} className="w-4.5 h-4.5" />
                   {cat.name}
                 </button>
               ))}
@@ -275,45 +398,65 @@ export default function App() {
           </section>
         )}
 
+        {/* Prompt Grid Title */}
+        {!loading && (
+          <div className="flex items-center justify-between mb-8 px-2">
+            <h3 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-3">
+              <Star className="w-6 h-6 text-amber-500 fill-amber-500" />
+              {selectedCategoryId 
+                ? `Danh mục: ${categories.find(c => c.id === selectedCategoryId)?.name}` 
+                : 'Thư viện Prompt nổi bật'
+              }
+            </h3>
+            <span className="text-xs font-black text-gray-400 uppercase tracking-widest">{filteredPrompts.length} kết quả</span>
+          </div>
+        )}
+
         {/* Prompt Grid */}
-        <section className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <section className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
           <AnimatePresence mode="popLayout">
             {filteredPrompts.map((p, idx) => (
               <motion.div
                 key={p.id}
                 layout
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.3, delay: idx * 0.05 }}
-                className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-md dark:hover:shadow-2xl/20 transition-all group flex flex-col h-full"
+                transition={{ duration: 0.4, delay: idx * 0.05, ease: [0.16, 1, 0.3, 1] }}
+                className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[2rem] overflow-hidden shadow-sm hover:shadow-2xl dark:hover:shadow-blue-500/10 transition-all group flex flex-col h-full border-b-[6px] border-b-gray-100 dark:border-b-gray-800 hover:border-b-blue-600 dark:hover:border-b-blue-500 hover:-translate-y-2"
               >
-                <div className="p-6 flex-1">
-                  <div className="flex justify-between items-start mb-4">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-800">
+                <div className="p-8 flex-1">
+                  <div className="flex justify-between items-start mb-6">
+                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-100/50 dark:border-blue-900/50">
+                      <Zap className="w-3 h-3 fill-blue-600 dark:fill-blue-400" />
                       {categories.find(c => c.id === p.categoryId)?.name || 'Prompt'}
                     </span>
-                    <button 
-                      onClick={() => copyToClipboard(p.prompt, p.id)}
-                      className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
-                    >
-                      {copiedId === p.id ? <Check className="w-4 h-4 text-green-600 dark:text-green-400" /> : <Copy className="w-4 h-4" />}
-                    </button>
+                    <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button 
+                        onClick={() => copyToClipboard(p.prompt, p.id)}
+                        className="p-2.5 bg-gray-50 dark:bg-gray-800 hover:bg-blue-600 hover:text-white rounded-xl transition-all text-gray-400 shadow-sm"
+                        title="Sao chép nhanh"
+                      >
+                        {copiedId === p.id ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </div>
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                  <h3 className="text-xl font-black text-gray-900 dark:text-white mb-4 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-tight">
                     {p.title}
                   </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-3 leading-relaxed">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 line-clamp-3 leading-relaxed font-medium opacity-80">
                     {p.description}
                   </p>
                 </div>
-                <div className="px-6 py-4 bg-gray-50 dark:bg-gray-950/50 border-t border-gray-100 dark:border-gray-800 mt-auto">
+                <div className="px-8 py-5 bg-gray-50/50 dark:bg-gray-950/20 border-t border-gray-100 dark:border-gray-800 mt-auto">
                   <button 
                     onClick={() => setSelectedPrompt(p)}
-                    className="w-full text-left text-sm font-bold text-blue-600 dark:text-blue-400 flex items-center justify-between group/btn"
+                    className="w-full text-left text-sm font-black text-gray-900 dark:text-white flex items-center justify-between group/btn"
                   >
-                    Xem chi tiết & kết quả
-                    <ChevronRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
+                    <span>XEM CHI TIẾT</span>
+                    <div className="w-10 h-10 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full flex items-center justify-center shadow-sm group-hover/btn:bg-blue-600 group-hover/btn:border-blue-600 transition-all">
+                      <ArrowRight className="w-4 h-4 group-hover/btn:text-white group-hover/btn:translate-x-0.5 transition-all" />
+                    </div>
                   </button>
                 </div>
               </motion.div>
@@ -332,49 +475,164 @@ export default function App() {
           </div>
         )}
 
-        {/* Guide Section */}
-        <section id="huong-dan-chi-tiet" className="mt-24 pt-20 border-t border-gray-200 dark:border-gray-700">
-          <div className="max-w-3xl mx-auto">
+        {/* Bento Content Section */}
+        {!loading && !selectedCategoryId && !searchQuery && (
+          <section className="mt-32">
             <div className="text-center mb-16">
-              <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-4">
-                Kỹ năng viết Prompt hiệu quả
+              <h2 className="text-4xl font-black text-gray-900 dark:text-white mb-4 tracking-tight">Tại sao nên dùng AI?</h2>
+              <p className="text-gray-500 dark:text-gray-400 font-medium">Lợi ích vượt trội cho cán bộ thời đại mới.</p>
+            </div>
+            
+            <div className="grid md:grid-cols-3 gap-6">
+              <div className="md:col-span-2 bg-gradient-to-br from-blue-600 to-indigo-700 p-10 rounded-[2.5rem] text-white flex flex-col justify-between shadow-xl shadow-blue-500/20">
+                <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mb-10">
+                  <Clock className="w-8 h-8 text-white" />
+                </div>
+                <div>
+                  <h4 className="text-3xl font-black mb-4">Tối ưu hóa thời gian</h4>
+                  <p className="text-blue-100 text-lg leading-relaxed font-medium">Thay vì mất hàng giờ để soạn thảo văn bản từ đầu, AI giúp bạn có ngay khung nội dung chuẩn xác chỉ trong vài giây. Bạn chỉ cần điều chỉnh chi tiết cho phù hợp.</p>
+                </div>
+              </div>
+              
+              <div className="bg-white dark:bg-gray-900 p-10 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 flex flex-col justify-between shadow-sm">
+                <div className="w-16 h-16 bg-amber-50 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center mb-10">
+                  <Sparkles className="w-8 h-8 text-amber-500" />
+                </div>
+                <div>
+                  <h4 className="text-2xl font-black text-gray-900 dark:text-white mb-4">Sáng tạo không giới hạn</h4>
+                  <p className="text-gray-500 dark:text-gray-400 leading-relaxed font-medium">Thiết kế slogan, bài viết tuyên truyền thu hút người dân một cách chuyên nghiệp nhất.</p>
+                </div>
+              </div>
+
+              <div className="bg-emerald-600 p-10 rounded-[2.5rem] text-white flex flex-col justify-between shadow-xl shadow-emerald-500/20">
+                <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mb-10">
+                  <Shield className="w-8 h-8 text-white" />
+                </div>
+                <div>
+                  <h4 className="text-2xl font-black mb-4">Độ chuẩn xác cao</h4>
+                  <p className="text-emerald-50 text-lg leading-relaxed font-medium">Các Prompt được chuẩn hóa theo quy chuẩn hành chính nhà nước.</p>
+                </div>
+              </div>
+
+              <div className="md:col-span-2 bg-white dark:bg-gray-900 p-10 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 flex flex-col md:flex-row gap-10 items-center shadow-sm">
+                <div className="flex-1">
+                  <h4 className="text-3xl font-black text-gray-900 dark:text-white mb-4 tracking-tight">Dễ dàng chia sẻ</h4>
+                  <p className="text-gray-500 dark:text-gray-400 text-lg leading-relaxed font-medium">Sao chép nhanh chóng và dán vào ChatGPT, Gemini hoặc các trợ lý AI khác chỉ bằng một lần chạm.</p>
+                </div>
+                <div className="w-full md:w-48 aspect-square bg-gray-50 dark:bg-gray-800 rounded-3xl flex items-center justify-center">
+                  <Copy className="w-16 h-16 text-blue-600" />
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Guide Section */}
+        <section id="huong-dan-chi-tiet" className="mt-32 pt-20 border-t border-gray-100 dark:border-gray-800">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center mb-20">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-xl text-[10px] font-black uppercase tracking-widest mb-6">
+                Học Viện AI
+              </div>
+              <h2 className="text-4xl font-black text-gray-900 dark:text-white mb-6 tracking-tight">
+                Làm chủ kỹ năng điều khiển AI
               </h2>
-              <p className="text-gray-600 dark:text-gray-400">
-                Làm chủ AI thông qua việc giao tiếp rõ ràng và đầy đủ bối cảnh.
+              <p className="text-xl text-gray-500 dark:text-gray-400 font-medium">
+                Sử dụng mô hình <span className="text-blue-600 dark:text-blue-400 font-black">R-T-F</span> để có kết quả tốt nhất.
               </p>
             </div>
 
-              <div className="space-y-6">
-                {[
-                  { 
-                    title: '1. Nhập vai (Role)', 
-                    desc: 'Xác định vai trò của AI. Càng chi tiết càng tốt (VD: Cán bộ pháp chế, Chuyên gia thiết kế đồ họa).',
-                    color: 'blue' 
-                  },
-                  { 
-                    title: '2. Nhiệm vụ (Task)', 
-                    desc: 'Mô tả cụ thể đầu ra mong muốn. Đừng yêu cầu chung chung, hãy dùng các động từ mạnh (Soạn thảo, Tóm tắt, Vẽ bảng biểu).',
-                    color: 'blue'
-                  },
-                  { 
-                    title: '3. Định dạng (Format)', 
-                    desc: 'Yêu cầu định dạng cụ thể (VD: Bảng, Danh sách, Markdown, Email trang trọng).',
-                    color: 'blue'
-                  }
-                ].map((step, i) => (
-                  <div key={i} className="flex gap-6 p-6 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-sm items-start">
-                    <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold flex-shrink-0">
-                      {i + 1}
-                    </div>
-                    <div>
-                      <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-2">{step.title}</h4>
-                      <p className="text-gray-600 dark:text-gray-400 text-sm">{step.desc}</p>
-                    </div>
+            <div className="grid sm:grid-cols-3 gap-8 mb-20">
+              {[
+                { 
+                  title: 'R - ROLE (Vai trò)', 
+                  desc: 'Xác định AI là ai? VD: Bạn là chuyên gia pháp chế UBND có 10 năm kinh nghiệm.',
+                  icon: Cpu,
+                  color: 'bg-blue-600'
+                },
+                { 
+                  title: 'T - TASK (Nhiệm vụ)', 
+                  desc: 'Cần làm gì cụ thể? VD: Soạn thảo thư ngỏ mời tham gia hội nghị Chuyển đổi số.',
+                  icon: Sparkles,
+                  color: 'bg-indigo-600'
+                },
+                { 
+                  title: 'F - FORMAT (Định dạng)', 
+                  desc: 'Trình bày thế nào? VD: Viết dưới dạng Email, bảng biểu, hoặc liệt kê ý chính.',
+                  icon: LayoutGrid,
+                  color: 'bg-emerald-600'
+                }
+              ].map((step, i) => (
+                <div key={i} className="flex flex-col items-center text-center p-8 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[2rem] shadow-sm hover:shadow-xl transition-all">
+                  <div className={`w-16 h-16 rounded-2xl ${step.color} text-white flex items-center justify-center mb-6 shadow-lg shadow-gray-200 dark:shadow-none`}>
+                    <step.icon className="w-8 h-8" />
                   </div>
-                ))}
-              </div>
+                  <h4 className="text-lg font-black text-gray-900 dark:text-white mb-4 tracking-tight">{step.title}</h4>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed font-medium">{step.desc}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
+
+        {/* AI Ecosystem Section */}
+        {!loading && !selectedCategoryId && !searchQuery && (
+          <section className="mt-32">
+            <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4 px-2">
+              <div className="max-w-2xl">
+                <h2 className="text-4xl font-black text-gray-900 dark:text-white mb-4 tracking-tight">Hệ sinh thái AI phổ biến</h2>
+                <p className="text-gray-500 dark:text-gray-400 font-medium leading-relaxed">
+                  Tận dụng tối đa sức mạnh của các công cụ AI hàng đầu thế giới để kết hợp cùng thư viện Prompt của chúng tôi.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 text-xs font-black text-gray-400 uppercase tracking-[0.2em]">
+                <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse" />
+                Cập nhật 2026
+              </div>
+            </div>
+
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+              {AI_TOOLS.map((tool, idx) => (
+                <motion.a
+                  key={tool.name}
+                  href={tool.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: idx * 0.1 }}
+                  className="group bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[2.5rem] p-8 shadow-sm hover:shadow-2xl hover:shadow-blue-500/10 transition-all flex flex-col h-full relative overflow-hidden"
+                >
+                  <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${tool.color} opacity-5 group-hover:opacity-10 transition-opacity -mr-16 -mt-16 rounded-full`} />
+                  
+                  <div className="flex justify-between items-start mb-6">
+                    <div className={`w-14 h-14 bg-gradient-to-br ${tool.color} rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20 group-hover:scale-110 transition-transform`}>
+                      <span className="text-2xl font-black">{tool.name.charAt(0)}</span>
+                    </div>
+                    <ExternalLink className="w-5 h-5 text-gray-300 group-hover:text-blue-600 transition-colors" />
+                  </div>
+
+                  <h3 className="text-xl font-black text-gray-900 dark:text-white mb-3 tracking-tight group-hover:text-blue-600 transition-colors">
+                    {tool.name}
+                  </h3>
+                  
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 font-medium leading-relaxed flex-1">
+                    {tool.desc}
+                  </p>
+
+                  <div className="flex flex-wrap gap-2">
+                    {tool.tags.map(tag => (
+                      <span key={tag} className="px-3 py-1 bg-gray-50 dark:bg-gray-800 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest rounded-lg border border-gray-100 dark:border-gray-800">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </motion.a>
+              ))}
+            </div>
+          </section>
+        )}
       </main>
 
       {/* Footer */}
@@ -402,7 +660,7 @@ export default function App() {
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto relative z-10 shadow-2xl border border-transparent dark:border-gray-800"
+              className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-y-auto relative z-10 shadow-2xl border border-transparent dark:border-gray-800"
             >
               <div className="p-8">
                 <div className="flex justify-between items-start mb-6">
@@ -420,7 +678,26 @@ export default function App() {
                 <div className="space-y-6">
                   <section>
                     <div className="flex justify-between items-center mb-3">
-                      <h4 className="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">Câu lệnh mẫu</h4>
+                      <div className="flex items-center gap-3">
+                        <h4 className="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">Câu lệnh mẫu</h4>
+                        <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5 border border-gray-200 dark:border-gray-700">
+                          <button 
+                            onClick={() => setModalFontSize(Math.max(12, modalFontSize - 2))}
+                            className="w-6 h-6 flex items-center justify-center text-xs font-bold text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 rounded-md transition-all"
+                            title="Giảm cỡ chữ"
+                          >
+                            -
+                          </button>
+                          <div className="w-[1px] h-3 bg-gray-300 dark:bg-gray-600 mx-1" />
+                          <button 
+                            onClick={() => setModalFontSize(Math.min(32, modalFontSize + 2))}
+                            className="w-6 h-6 flex items-center justify-center text-xs font-bold text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 rounded-md transition-all"
+                            title="Tăng cỡ chữ"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
                       <button 
                         onClick={() => copyToClipboard(selectedPrompt.prompt, 'modal')}
                         className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline"
@@ -428,7 +705,10 @@ export default function App() {
                         {copiedId === 'modal' ? 'Đã sao chép' : 'Sao chép'}
                       </button>
                     </div>
-                    <div className="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 font-mono text-xs sm:text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
+                    <div 
+                      className="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 font-mono text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap transition-all duration-200"
+                      style={{ fontSize: `${modalFontSize}px` }}
+                    >
                       {selectedPrompt.prompt}
                     </div>
                   </section>
@@ -441,7 +721,10 @@ export default function App() {
                   {selectedPrompt.resultSample && (
                     <section>
                       <h4 className="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3">Kết quả AI tham khảo</h4>
-                      <div className="bg-blue-50/30 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-2xl p-5 text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap italic opacity-80">
+                      <div 
+                        className="bg-blue-50/30 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-2xl p-5 text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap italic opacity-80 transition-all duration-200"
+                        style={{ fontSize: `${modalFontSize}px` }}
+                      >
                         {selectedPrompt.resultSample}
                       </div>
                     </section>
