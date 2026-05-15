@@ -75,6 +75,7 @@ const AI_TOOLS = [
     tags: ['Tin tức', 'Real-time']
   }
 ];
+
 const BUILDER_FIELDS = [
   { id: 'all', name: 'Tất cả', color: 'bg-gray-500' },
   { id: 'admin', name: 'Hành chính', color: 'bg-blue-500' },
@@ -441,6 +442,15 @@ YÊU CẦU ĐỊNH DẠNG: ${builderFormat || 'Văn bản hành chính trang tr�
 HÃY PHẢN HỒI: Chuyên nghiệp, đúng quy định pháp luật và bám sát bối cảnh đã nêu.`;
     
     setGeneratedResult(prompt);
+  };
+
+  const handleClearBuilder = () => {
+    setBuilderRole('');
+    setBuilderContext('');
+    setBuilderTask('');
+    setBuilderFormat('');
+    setGeneratedResult('');
+    setSelectedBuilderField('all');
   };
 
   if (isAdminView) return <AdminPanel darkMode={darkMode} setDarkMode={setDarkMode} />;
@@ -850,7 +860,7 @@ HÃY PHẢN HỒI: Chuyên nghiệp, đúng quy định pháp luật và bám s�
               </p>
 
               {/* Builder Field Selector */}
-              <div className="max-w-3xl mx-auto flex flex-wrap justify-center gap-3 bg-gray-50 dark:bg-gray-800/50 p-2 rounded-[2rem] border border-gray-100 dark:border-gray-800">
+              <div className="max-w-4xl mx-auto flex flex-wrap justify-center items-center gap-3 bg-gray-50 dark:bg-gray-800/50 p-2 rounded-[2rem] border border-gray-100 dark:border-gray-800">
                 {BUILDER_FIELDS.map(field => (
                   <button
                     key={field.id}
@@ -864,6 +874,16 @@ HÃY PHẢN HỒI: Chuyên nghiệp, đúng quy định pháp luật và bám s�
                     {field.name.toUpperCase()}
                   </button>
                 ))}
+                
+                <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1 hidden sm:block" />
+                
+                <button 
+                  onClick={handleClearBuilder}
+                  className="group flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-black text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+                >
+                  <X className="w-4 h-4 group-hover:rotate-90 transition-transform" /> 
+                  XÓA TẤT CẢ
+                </button>
               </div>
             </div>
 
@@ -873,6 +893,18 @@ HÃY PHẢN HỒI: Chuyên nghiệp, đúng quy định pháp luật và bám s�
               
               <div className="grid lg:grid-cols-2 gap-12 sm:gap-20 relative z-10">
                 <div className="space-y-10">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                      <LayoutGrid className="w-3 h-3" /> THIẾT LẬP CÂU LỆNH
+                    </div>
+                    <button 
+                      onClick={handleClearBuilder}
+                      className="text-[10px] font-black text-red-500 hover:text-red-600 transition-colors flex items-center gap-1 bg-red-50 dark:bg-red-900/20 px-3 py-1 rounded-lg"
+                    >
+                      <X className="w-3 h-3" /> XÓA NỘI DUNG
+                    </button>
+                  </div>
+
                   <div className="relative">
                     <div className="flex items-center gap-3 mb-4">
                       <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-black shadow-lg shadow-blue-500/30">1</div>
@@ -1030,14 +1062,7 @@ HÃY PHẢN HỒI: Chuyên nghiệp, đúng quy định pháp luật và bám s�
                       <Zap className="w-6 h-6 fill-white" /> XÁC NHẬN TẠO PROMPT
                     </button>
                     <button 
-                      onClick={() => {
-                        setBuilderRole('');
-                        setBuilderContext('');
-                        setBuilderTask('');
-                        setBuilderFormat('');
-                        setGeneratedResult('');
-                        setSelectedBuilderField('all');
-                      }}
+                      onClick={handleClearBuilder}
                       className="flex-1 py-5 bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 rounded-3xl font-black hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-all active:scale-95 border border-transparent hover:border-red-200"
                     >
                       XÓA
