@@ -75,6 +75,235 @@ const AI_TOOLS = [
     tags: ['Tin tức', 'Real-time']
   }
 ];
+const BUILDER_FIELDS = [
+  { id: 'all', name: 'Tất cả', color: 'bg-gray-500' },
+  { id: 'admin', name: 'Hành chính', color: 'bg-blue-500' },
+  { id: 'legal', name: 'Tư pháp', color: 'bg-indigo-500' },
+  { id: 'culture', name: 'Tuyên truyền', color: 'bg-orange-500' },
+  { id: 'land', name: 'Địa chính', color: 'bg-emerald-500' },
+  { id: 'tech', name: 'Số hóa', color: 'bg-cyan-500' },
+  { id: 'social', name: 'An sinh xã hội', color: 'bg-rose-500' },
+  { id: 'security', name: 'An ninh trật tự', color: 'bg-red-500' },
+  { id: 'economy', name: 'Kinh tế', color: 'bg-yellow-500' },
+  { id: 'health', name: 'Y tế cộng đồng', color: 'bg-teal-500' }
+];
+
+const SCENARIO_SUGGESTIONS = {
+  roles: [
+    { text: 'Cán bộ Văn phòng', field: 'admin' },
+    { text: 'Cán bộ một cửa', field: 'admin' },
+    { text: 'Kế toán ngân sách', field: 'admin' },
+    { text: 'Văn thư lưu trữ', field: 'admin' },
+    { text: 'Cán bộ Nội vụ', field: 'admin' },
+    { text: 'Chủ tịch UBND xã', field: 'admin' },
+    { text: 'Phó Chủ tịch UBND xã', field: 'admin' },
+
+    { text: 'Cán bộ Tư pháp', field: 'legal' },
+    { text: 'Công chức Hộ tịch', field: 'legal' },
+    { text: 'Cán bộ tiếp công dân', field: 'legal' },
+    { text: 'Cán bộ xử lý đơn thư', field: 'legal' },
+    { text: 'Công an xã', field: 'security' },
+
+    { text: 'Cán bộ Văn hóa', field: 'culture' },
+    { text: 'Bí thư Đoàn', field: 'culture' },
+    { text: 'Hội Phụ nữ', field: 'culture' },
+    { text: 'Hội Nông dân', field: 'culture' },
+    { text: 'Mặt trận Tổ quốc', field: 'culture' },
+
+    { text: 'Cán bộ Địa chính', field: 'land' },
+    { text: 'Chuyên gia Môi trường', field: 'land' },
+    { text: 'Cán bộ xây dựng', field: 'land' },
+    { text: 'Cán bộ quản lý đô thị', field: 'land' },
+    { text: 'Cán bộ phòng chống thiên tai', field: 'land' },
+
+    { text: 'Chuyên gia Chuyển đổi số', field: 'tech' },
+    { text: 'Cán bộ CNTT', field: 'tech' },
+    { text: 'Cán bộ phụ trách dịch vụ công trực tuyến', field: 'tech' },
+
+    { text: 'Cán bộ Lao động - Thương binh và Xã hội', field: 'social' },
+    { text: 'Cán bộ giảm nghèo', field: 'social' },
+    { text: 'Cán bộ chính sách người có công', field: 'social' },
+
+    { text: 'Cán bộ Kinh tế', field: 'economy' },
+    { text: 'Cán bộ nông nghiệp', field: 'economy' },
+    { text: 'Cán bộ hợp tác xã', field: 'economy' },
+
+    { text: 'Cán bộ Y tế xã', field: 'health' },
+    { text: 'Cộng tác viên dân số', field: 'health' },
+    { text: 'Cán bộ phòng chống dịch', field: 'health' }
+  ],
+
+  contexts: [
+    { text: 'Báo cáo quý I', field: 'admin' },
+    { text: 'Báo cáo tháng', field: 'admin' },
+    { text: 'Tổng hợp nhiệm vụ tuần', field: 'admin' },
+    { text: 'Chuẩn bị họp giao ban', field: 'admin' },
+    { text: 'Cải cách hành chính', field: 'admin' },
+    { text: 'Xây dựng nông thôn mới', field: 'admin' },
+    { text: 'Tiếp đoàn kiểm tra', field: 'admin' },
+    { text: 'Theo dõi tiến độ nhiệm vụ lãnh đạo giao', field: 'admin' },
+
+    { text: 'Tiếp đoàn thanh tra', field: 'legal' },
+    { text: 'Giải quyết khiếu nại', field: 'legal' },
+    { text: 'Hòa giải tranh chấp cơ sở', field: 'legal' },
+    { text: 'Rà soát hồ sơ hộ tịch', field: 'legal' },
+    { text: 'Chứng thực giấy tờ', field: 'legal' },
+    { text: 'Tuyên truyền pháp luật cho người dân', field: 'legal' },
+
+    { text: 'Tuyên truyền an toàn giao thông', field: 'culture' },
+    { text: 'Ngày hội đại đoàn kết', field: 'culture' },
+    { text: 'Tuyên truyền bảo vệ môi trường', field: 'culture' },
+    { text: 'Tuyên truyền dịch vụ công trực tuyến', field: 'culture' },
+    { text: 'Tổ chức lễ kỷ niệm', field: 'culture' },
+    { text: 'Đăng tin lên Facebook/Zalo OA', field: 'culture' },
+
+    { text: 'Giải quyết khiếu nại đất đai', field: 'land' },
+    { text: 'Kiểm tra hiện trạng đất', field: 'land' },
+    { text: 'Giải phóng mặt bằng', field: 'land' },
+    { text: 'Phòng chống thiên tai', field: 'land' },
+    { text: 'Ra quân vệ sinh môi trường', field: 'land' },
+    { text: 'Xử lý rác thải nhựa', field: 'land' },
+
+    { text: 'Khai thác dữ liệu dân cư', field: 'tech' },
+    { text: 'Số hóa hồ sơ hành chính', field: 'tech' },
+    { text: 'Hướng dẫn người dân nộp hồ sơ online', field: 'tech' },
+    { text: 'Tạo biểu mẫu Google Form', field: 'tech' },
+    { text: 'Tổng hợp dữ liệu Excel', field: 'tech' },
+    { text: 'Tạo báo cáo Power BI', field: 'tech' },
+
+    { text: 'Rà soát hộ nghèo', field: 'social' },
+    { text: 'Chi trả chính sách an sinh', field: 'social' },
+    { text: 'Hỗ trợ người có công', field: 'social' },
+    { text: 'Vận động hỗ trợ hộ khó khăn', field: 'social' },
+
+    { text: 'Đảm bảo an ninh trật tự', field: 'security' },
+    { text: 'Tuyên truyền phòng cháy chữa cháy', field: 'security' },
+    { text: 'Phòng chống tệ nạn xã hội', field: 'security' },
+    { text: 'Xác minh thông tin cư trú', field: 'security' },
+
+    { text: 'Phát triển kinh tế hộ gia đình', field: 'economy' },
+    { text: 'Hỗ trợ sản xuất nông nghiệp', field: 'economy' },
+    { text: 'Tuyên truyền chuyển đổi cây trồng', field: 'economy' },
+    { text: 'Khuyến khích kinh doanh hộ cá thể', field: 'economy' },
+
+    { text: 'Phòng chống dịch bệnh', field: 'health' },
+    { text: 'Tuyên truyền vệ sinh an toàn thực phẩm', field: 'health' },
+    { text: 'Chăm sóc sức khỏe cộng đồng', field: 'health' }
+  ],
+
+  tasks: [
+    { text: 'Soạn thảo tờ trình', field: 'admin' },
+    { text: 'Soạn công văn hành chính', field: 'admin' },
+    { text: 'Soạn thông báo mời họp', field: 'admin' },
+    { text: 'Lập lịch công tác tuần', field: 'admin' },
+    { text: 'Tổng hợp báo cáo từ nhiều nguồn', field: 'admin' },
+    { text: 'Viết báo cáo kết quả thực hiện', field: 'admin' },
+    { text: 'Lập bảng phân công nhiệm vụ', field: 'admin' },
+    { text: 'Trả lời ý kiến cử tri', field: 'admin' },
+    { text: 'Xây dựng quy trình làm việc', field: 'admin' },
+
+    { text: 'Xác minh hồ sơ pháp lý', field: 'legal' },
+    { text: 'Dự thảo quyết định xử phạt', field: 'legal' },
+    { text: 'Soạn biên bản làm việc', field: 'legal' },
+    { text: 'Tóm tắt văn bản pháp luật', field: 'legal' },
+    { text: 'Soạn nội dung hòa giải tranh chấp', field: 'legal' },
+    { text: 'Viết phiếu hướng dẫn thủ tục pháp lý', field: 'legal' },
+    { text: 'Phân tích nội dung đơn khiếu nại', field: 'legal' },
+
+    { text: 'Viết bài tuyên truyền', field: 'culture' },
+    { text: 'Lập kế hoạch sự kiện', field: 'culture' },
+    { text: 'Thiết kế thông điệp truyền thông', field: 'culture' },
+    { text: 'Viết kịch bản loa phát thanh', field: 'culture' },
+    { text: 'Viết bài đăng Facebook', field: 'culture' },
+    { text: 'Tạo khẩu hiệu tuyên truyền', field: 'culture' },
+    { text: 'Soạn bài phát biểu khai mạc', field: 'culture' },
+
+    { text: 'Lập biên bản kiểm tra hiện trạng', field: 'land' },
+    { text: 'Soạn kế hoạch ra quân vệ sinh môi trường', field: 'land' },
+    { text: 'Tổng hợp danh sách hộ ảnh hưởng giải phóng mặt bằng', field: 'land' },
+    { text: 'Đề xuất phương án xử lý rác thải', field: 'land' },
+    { text: 'Viết báo cáo phòng chống thiên tai', field: 'land' },
+    { text: 'Soạn thông báo về trật tự xây dựng', field: 'land' },
+
+    { text: 'Biên soạn hướng dẫn thủ tục trực tuyến', field: 'tech' },
+    { text: 'Tạo prompt AI cho cán bộ', field: 'tech' },
+    { text: 'Phân tích dữ liệu Excel', field: 'tech' },
+    { text: 'Tạo bảng theo dõi tiến độ', field: 'tech' },
+    { text: 'Tạo nội dung tập huấn chuyển đổi số', field: 'tech' },
+    { text: 'Viết hướng dẫn sử dụng dịch vụ công', field: 'tech' },
+    { text: 'Tạo checklist số hóa hồ sơ', field: 'tech' },
+
+    { text: 'Lập danh sách hộ nghèo cần rà soát', field: 'social' },
+    { text: 'Soạn kế hoạch thăm hỏi gia đình chính sách', field: 'social' },
+    { text: 'Viết báo cáo an sinh xã hội', field: 'social' },
+    { text: 'Soạn thông báo chi trả chế độ', field: 'social' },
+
+    { text: 'Soạn kế hoạch đảm bảo an ninh trật tự', field: 'security' },
+    { text: 'Viết thông báo phòng cháy chữa cháy', field: 'security' },
+    { text: 'Lập phương án bảo vệ sự kiện', field: 'security' },
+
+    { text: 'Lập kế hoạch phát triển kinh tế địa phương', field: 'economy' },
+    { text: 'Viết báo cáo tình hình sản xuất nông nghiệp', field: 'economy' },
+    { text: 'Soạn nội dung vận động hộ kinh doanh', field: 'economy' },
+
+    { text: 'Soạn bài tuyên truyền phòng dịch', field: 'health' },
+    { text: 'Lập kế hoạch kiểm tra an toàn thực phẩm', field: 'health' },
+    { text: 'Viết khuyến cáo sức khỏe cộng đồng', field: 'health' }
+  ],
+
+  formats: [
+    { text: 'Công văn hành chính', field: 'admin' },
+    { text: 'Tờ trình chuẩn Nghị định 30', field: 'admin' },
+    { text: 'Báo cáo chi tiết', field: 'admin' },
+    { text: 'Thông báo mời họp', field: 'admin' },
+    { text: 'Biên bản cuộc họp', field: 'admin' },
+    { text: 'Lịch công tác tuần', field: 'admin' },
+    { text: 'Bảng phân công nhiệm vụ', field: 'admin' },
+    { text: 'Email trang trọng', field: 'admin' },
+
+    { text: 'Biên bản làm việc', field: 'legal' },
+    { text: 'Quyết định xử phạt', field: 'legal' },
+    { text: 'Phiếu hướng dẫn thủ tục', field: 'legal' },
+    { text: 'Bản tóm tắt văn bản pháp luật', field: 'legal' },
+    { text: 'Nội dung trả lời đơn thư', field: 'legal' },
+
+    { text: 'Bài đăng Facebook', field: 'culture' },
+    { text: 'Kịch bản truyền thanh', field: 'culture' },
+    { text: 'Infographic nội dung', field: 'culture' },
+    { text: 'Bài phát biểu', field: 'culture' },
+    { text: 'Poster tuyên truyền', field: 'culture' },
+    { text: 'Kịch bản video ngắn', field: 'culture' },
+
+    { text: 'Biên bản kiểm tra hiện trạng', field: 'land' },
+    { text: 'Báo cáo môi trường', field: 'land' },
+    { text: 'Kế hoạch ra quân', field: 'land' },
+    { text: 'Danh sách hộ bị ảnh hưởng', field: 'land' },
+    { text: 'Phương án xử lý hiện trường', field: 'land' },
+
+    { text: 'Bảng so sánh dữ liệu', field: 'tech' },
+    { text: 'Slide trình chiếu', field: 'tech' },
+    { text: 'Checklist số hóa', field: 'tech' },
+    { text: 'Quy trình thao tác', field: 'tech' },
+    { text: 'Mẫu Google Form', field: 'tech' },
+    { text: 'Dashboard mô tả số liệu', field: 'tech' },
+
+    { text: 'Danh sách rà soát hộ nghèo', field: 'social' },
+    { text: 'Thông báo chi trả chính sách', field: 'social' },
+    { text: 'Báo cáo an sinh xã hội', field: 'social' },
+
+    { text: 'Phương án đảm bảo an ninh', field: 'security' },
+    { text: 'Thông báo phòng cháy chữa cháy', field: 'security' },
+    { text: 'Kế hoạch tuần tra', field: 'security' },
+
+    { text: 'Báo cáo kinh tế địa phương', field: 'economy' },
+    { text: 'Kế hoạch hỗ trợ sản xuất', field: 'economy' },
+    { text: 'Bảng thống kê hộ kinh doanh', field: 'economy' },
+
+    { text: 'Khuyến cáo sức khỏe', field: 'health' },
+    { text: 'Kế hoạch phòng chống dịch', field: 'health' },
+    { text: 'Thông báo an toàn thực phẩm', field: 'health' }
+  ]
+};
 
 export interface PromptExample {
   id: string;
@@ -110,12 +339,22 @@ export default function App() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [prompts, setPrompts] = useState<PromptExample[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeView, setActiveView] = useState<'home' | 'builder'>('home');
+  const [selectedBuilderField, setSelectedBuilderField] = useState('all');
 
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPrompt, setSelectedPrompt] = useState<PromptExample | null>(null);
   const [modalFontSize, setModalFontSize] = useState(14);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Prompt Generator State
+  const [builderRole, setBuilderRole] = useState('');
+  const [builderContext, setBuilderContext] = useState('');
+  const [builderTask, setBuilderTask] = useState('');
+  const [builderFormat, setBuilderFormat] = useState('');
+  const [generatedResult, setGeneratedResult] = useState('');
+
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('theme') === 'dark' || 
@@ -168,10 +407,40 @@ export default function App() {
     });
   }, [selectedCategoryId, searchQuery, prompts]);
 
-  const copyToClipboard = (text: string, id: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
+  const copyToClipboard = async (text: string, id: string) => {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        // Fallback for non-secure contexts or if clipboard API is unavailable
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-9999px";
+        textArea.style.top = "0";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        textArea.remove();
+      }
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy: ', err);
+    }
+  };
+
+  const handleGeneratePrompt = () => {
+    if (!builderRole || !builderTask) return;
+    
+    const prompt = `BẠN LÀ: ${builderRole}.
+BỐI CẢNH: ${builderContext || 'Đang thực hiện công tác hành chính tại UBND cơ sở'}.
+NHIỆM VỤ: ${builderTask}.
+YÊU CẦU ĐỊNH DẠNG: ${builderFormat || 'Văn bản hành chính trang trọng, đầy đủ và chính xác'}.
+HÃY PHẢN HỒI: Chuyên nghiệp, đúng quy định pháp luật và bám sát bối cảnh đã nêu.`;
+    
+    setGeneratedResult(prompt);
   };
 
   if (isAdminView) return <AdminPanel darkMode={darkMode} setDarkMode={setDarkMode} />;
@@ -183,15 +452,30 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 sm:h-20">
             <div className="flex items-center gap-3">
-              <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-2.5 rounded-2xl cursor-pointer shadow-lg shadow-blue-500/30 transition-all hover:scale-110 active:scale-95" onClick={() => (window.location.hash = '')}>
+              <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-2.5 rounded-2xl cursor-pointer shadow-lg shadow-blue-500/30 transition-all hover:scale-110 active:scale-95" onClick={() => setActiveView('home')}>
                 <Cpu className="w-6 h-6 text-white" />
               </div>
-              <h1 className="text-xl font-black tracking-tight text-gray-900 dark:text-white hidden sm:block cursor-pointer" onClick={() => (window.location.hash = '')}>
-                AI<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400">PROMT</span>
+              <h1 className="text-xl font-black tracking-tight text-gray-900 dark:text-white hidden sm:block cursor-pointer" onClick={() => setActiveView('home')}>
+                AI <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400">PROMT</span>
               </h1>
             </div>
+
+            <nav className="hidden lg:flex items-center gap-1 bg-gray-100 dark:bg-gray-800/50 p-1 rounded-2xl border border-gray-200 dark:border-gray-800">
+              <button 
+                onClick={() => setActiveView('home')}
+                className={`px-5 py-2 rounded-xl text-sm font-black transition-all ${activeView === 'home' ? 'bg-white dark:bg-gray-800 text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+              >
+                Thư viện
+              </button>
+              <button 
+                onClick={() => setActiveView('builder')}
+                className={`px-5 py-2 rounded-xl text-sm font-black transition-all ${activeView === 'builder' ? 'bg-white dark:bg-gray-800 text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+              >
+                Tạo Prompt
+              </button>
+            </nav>
             
-            <div className="relative flex-1 max-w-md mx-4 group">
+            <div className="relative flex-1 max-w-sm mx-4 group hidden md:block">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 group-focus-within:text-blue-500 transition-colors" />
               <input 
                 type="text" 
@@ -239,6 +523,24 @@ export default function App() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        {/* Mobile Navigation */}
+        {!loading && (
+          <div className="flex lg:hidden gap-2 mb-8 bg-gray-100 dark:bg-gray-800/50 p-1 rounded-2xl">
+            <button 
+              onClick={() => setActiveView('home')}
+              className={`flex-1 py-3 rounded-xl text-sm font-black transition-all ${activeView === 'home' ? 'bg-white dark:bg-gray-800 text-blue-600 shadow-sm' : 'text-gray-500'}`}
+            >
+              Thư viện
+            </button>
+            <button 
+              onClick={() => setActiveView('builder')}
+              className={`flex-1 py-3 rounded-xl text-sm font-black transition-all ${activeView === 'builder' ? 'bg-white dark:bg-gray-800 text-blue-600 shadow-sm' : 'text-gray-500'}`}
+            >
+              Tạo Prompt
+            </button>
+          </div>
+        )}
+
         {/* Loading State */}
         {loading && (
           <div className="py-20 text-center animate-pulse">
@@ -250,8 +552,11 @@ export default function App() {
           </div>
         )}
 
-        {/* Welcome Section */}
-        {!loading && !selectedCategoryId && !searchQuery && (
+        {/* Library View */}
+        {!loading && activeView === 'home' && (
+          <>
+            {/* Welcome Section */}
+            {!selectedCategoryId && !searchQuery && (
           <section className="mb-20">
             <div className="relative rounded-[2.5rem] overflow-hidden bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-2xl p-8 sm:p-16">
               {/* Abstract backgrounds */}
@@ -273,7 +578,7 @@ export default function App() {
                       Sức Mạnh <span className="text-transparent bg-clip-text bg-gradient-to-br from-blue-600 to-indigo-600">AI</span> Cho Công Việc Hành Chính
                     </h2>
                     <p className="text-xl text-gray-600 dark:text-gray-400 mb-10 max-w-xl mx-auto lg:mx-0 leading-relaxed font-medium">
-                      Hệ thống thư viện Prompt (Câu lệnh) mẫu chuẩn hóa giúp cán bộ cấp cơ sở tối ưu hóa  hiệu năng soạn thảo văn bản và tuyên truyền.
+                      Hệ thống thư viện Prompt (Câu lệnh) mẫu chuẩn hóa giúp cán bộ cấp cơ sở tối ưu hóa 300% hiệu năng soạn thảo văn bản và tuyên truyền.
                     </p>
                     <div className="flex flex-wrap gap-4 justify-center lg:justify-start">
                       <button 
@@ -325,10 +630,10 @@ export default function App() {
             {/* Stats Section */}
             <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4 px-4">
               {[
-                { label: 'Prompt Chuẩn', val: '10+', icon: Sparkles, color: 'text-blue-600' },
+                { label: 'Prompt Chuẩn', val: '200+', icon: Sparkles, color: 'text-blue-600' },
                 { label: 'Tiết Kiệm Giờ', val: '80%', icon: Clock, color: 'text-indigo-600' },
                 { label: 'Bảo Mật', val: '100%', icon: Shield, color: 'text-emerald-600' },
-                { label: 'Tốc Độ', val: 'x2', icon: Zap, color: 'text-amber-500' },
+                { label: 'Tốc Độ', val: 'x10', icon: Zap, color: 'text-amber-500' },
               ].map((stat, i) => (
                 <div key={i} className="bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 text-center shadow-sm hover:shadow-md transition-shadow">
                   <div className={`w-10 h-10 mx-auto mb-3 rounded-full flex items-center justify-center bg-gray-50 dark:bg-gray-800 ${stat.color}`}>
@@ -526,11 +831,268 @@ export default function App() {
             </div>
           </section>
         )}
+      </>
+    )}
 
-        {/* Guide Section */}
-        <section id="huong-dan-chi-tiet" className="mt-32 pt-20 border-t border-gray-100 dark:border-gray-800">
-          <div className="max-w-4xl mx-auto">
-            <div className="text-center mb-20">
+      {/* Builder Section */}
+      {!loading && activeView === 'builder' && (
+        <div className="max-w-6xl mx-auto px-4 py-12">
+          <section id="huong-dan-chi-tiet" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="text-center mb-16">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 text-blue-600 dark:text-blue-400 rounded-xl text-[10px] font-black uppercase tracking-widest mb-8 border border-blue-500/20">
+                 <Zap className="w-3 h-3 fill-current" /> Smart Builder Pro
+              </div>
+              <h2 className="text-4xl sm:text-6xl font-black text-gray-900 dark:text-white mb-6 tracking-tight leading-tight">
+                Tự tạo <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600">Prompt</span> chuyên nghiệp
+              </h2>
+              <p className="text-xl text-gray-500 dark:text-gray-400 font-medium max-w-2xl mx-auto mb-12">
+                Kết hợp các thành phần thông minh để AI tạo ra câu lệnh hoàn hảo nhất cho công việc của bạn.
+              </p>
+
+              {/* Builder Field Selector */}
+              <div className="max-w-3xl mx-auto flex flex-wrap justify-center gap-3 bg-gray-50 dark:bg-gray-800/50 p-2 rounded-[2rem] border border-gray-100 dark:border-gray-800">
+                {BUILDER_FIELDS.map(field => (
+                  <button
+                    key={field.id}
+                    onClick={() => setSelectedBuilderField(field.id)}
+                    className={`px-5 py-2.5 rounded-2xl text-xs font-black transition-all ${
+                      selectedBuilderField === field.id
+                      ? `${field.color} text-white shadow-lg`
+                      : 'text-gray-500 hover:bg-white dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
+                    }`}
+                  >
+                    {field.name.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-[3rem] p-8 sm:p-16 shadow-2xl overflow-hidden relative group">
+              <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/5 rounded-full -mr-48 -mt-48 blur-3xl pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-600/5 rounded-full -ml-48 -mb-48 blur-3xl pointer-events-none" />
+              
+              <div className="grid lg:grid-cols-2 gap-12 sm:gap-20 relative z-10">
+                <div className="space-y-10">
+                  <div className="relative">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-black shadow-lg shadow-blue-500/30">1</div>
+                      <label className="block text-xs font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest px-1">Vai trò của AI (Role)</label>
+                    </div>
+                    <input 
+                      type="text" 
+                      placeholder="VD: Cán bộ Tư pháp, Chuyên gia soạn thảo..."
+                      className="w-full bg-blue-50/30 dark:bg-gray-800/50 border border-transparent focus:border-blue-500/30 focus:ring-4 focus:ring-blue-500/5 rounded-2xl p-6 text-sm outline-none transition-all dark:text-white mb-4 shadow-inner font-medium"
+                      value={builderRole}
+                      onChange={(e) => setBuilderRole(e.target.value)}
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      {SCENARIO_SUGGESTIONS.roles
+                        .filter(r => selectedBuilderField === 'all' || r.field === selectedBuilderField)
+                        .map(r => (
+                          <button 
+                            key={r.text} 
+                            onClick={() => {
+                              setBuilderRole(prev => prev ? prev + '\n' + r.text : r.text);
+                              if (selectedBuilderField === 'all') setSelectedBuilderField(r.field);
+                            }} 
+                            className={`text-[10px] px-3 py-1.5 rounded-xl border transition-all font-bold shadow-sm ${
+                              r.field === 'culture' ? 'bg-orange-50 text-orange-600 border-orange-100 hover:bg-orange-100' :
+                              r.field === 'legal' ? 'bg-indigo-50 text-indigo-600 border-indigo-100 hover:bg-indigo-100' :
+                              r.field === 'admin' ? 'bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100' :
+                              r.field === 'land' ? 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100' :
+                              'bg-cyan-50 text-cyan-600 border-cyan-100 hover:bg-cyan-100'
+                            }`}
+                          >
+                            +{r.text}
+                          </button>
+                        ))
+                      }
+                    </div>
+                  </div>
+
+                  <div className="relative">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white text-xs font-black shadow-lg shadow-purple-500/30">2</div>
+                      <label className="block text-xs font-black text-purple-600 dark:text-purple-400 uppercase tracking-widest px-1">Bối cảnh (Context)</label>
+                    </div>
+                    <textarea 
+                      rows={2}
+                      placeholder="VD: Đang chuẩn bị báo cáo quý I, giải quyết khiếu nại dân cư..."
+                      className="w-full bg-purple-50/30 dark:bg-gray-800/50 border border-transparent focus:border-purple-500/30 focus:ring-4 focus:ring-purple-500/5 rounded-2xl p-6 text-sm outline-none transition-all dark:text-white resize-none mb-4 shadow-inner font-medium"
+                      value={builderContext}
+                      onChange={(e) => setBuilderContext(e.target.value)}
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      {SCENARIO_SUGGESTIONS.contexts
+                        .filter(c => selectedBuilderField === 'all' || c.field === selectedBuilderField)
+                        .map(c => (
+                          <button 
+                            key={c.text} 
+                            onClick={() => {
+                              setBuilderContext(prev => prev ? prev + '\n' + c.text : c.text);
+                              if (selectedBuilderField === 'all') setSelectedBuilderField(c.field);
+                            }} 
+                            className={`text-[10px] px-3 py-1.5 rounded-xl border transition-all font-bold shadow-sm ${
+                              c.field === 'culture' ? 'bg-orange-50 text-orange-600 border-orange-100 hover:bg-orange-100' :
+                              c.field === 'legal' ? 'bg-indigo-50 text-indigo-600 border-indigo-100 hover:bg-indigo-100' :
+                              c.field === 'admin' ? 'bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100' :
+                              c.field === 'land' ? 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100' :
+                              'bg-cyan-50 text-cyan-600 border-cyan-100 hover:bg-cyan-100'
+                            }`}
+                          >
+                            +{c.text}
+                          </button>
+                        ))
+                      }
+                    </div>
+                  </div>
+
+                  <div className="relative">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center text-white text-xs font-black shadow-lg shadow-orange-500/30">3</div>
+                      <label className="block text-xs font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest px-1">Yêu cầu (Task)</label>
+                    </div>
+                    <textarea 
+                      rows={3}
+                      placeholder="VD: Soạn thảo thư ngỏ, biên soạn bài phát biểu..."
+                      className="w-full bg-orange-50/30 dark:bg-gray-800/50 border border-transparent focus:border-orange-500/30 focus:ring-4 focus:ring-orange-500/5 rounded-2xl p-6 text-sm outline-none transition-all dark:text-white resize-none mb-4 shadow-inner font-medium"
+                      value={builderTask}
+                      onChange={(e) => setBuilderTask(e.target.value)}
+                    />
+                    <div className="flex flex-wrap gap-2">
+                       {SCENARIO_SUGGESTIONS.tasks
+                        .filter(t => selectedBuilderField === 'all' || t.field === selectedBuilderField)
+                        .map(t => (
+                          <button 
+                            key={t.text} 
+                            onClick={() => {
+                              setBuilderTask(prev => prev ? prev + '\n' + t.text : t.text);
+                              if (selectedBuilderField === 'all') setSelectedBuilderField(t.field);
+                            }} 
+                            className={`text-[10px] px-3 py-1.5 rounded-xl border transition-all font-bold shadow-sm ${
+                              t.field === 'culture' ? 'bg-orange-50 text-orange-600 border-orange-100 hover:bg-orange-100' :
+                              t.field === 'legal' ? 'bg-indigo-50 text-indigo-600 border-indigo-100 hover:bg-indigo-100' :
+                              t.field === 'admin' ? 'bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100' :
+                              t.field === 'land' ? 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100' :
+                              'bg-cyan-50 text-cyan-600 border-cyan-100 hover:bg-cyan-100'
+                            }`}
+                          >
+                            +{t.text}
+                          </button>
+                        ))
+                      }
+                    </div>
+                  </div>
+
+                  <div className="relative">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white text-xs font-black shadow-lg shadow-emerald-500/30">4</div>
+                      <label className="block text-xs font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest px-1">Đầu ra mong muốn (Output)</label>
+                    </div>
+                    <input 
+                      type="text" 
+                      placeholder="VD: Danh sách ý chính, Email trang trọng, Slide..."
+                      className="w-full bg-emerald-50/30 dark:bg-gray-800/50 border border-transparent focus:border-emerald-500/30 focus:ring-4 focus:ring-emerald-500/5 rounded-2xl p-6 text-sm outline-none transition-all dark:text-white mb-4 shadow-inner font-medium"
+                      value={builderFormat}
+                      onChange={(e) => setBuilderFormat(e.target.value)}
+                    />
+                    <div className="flex flex-wrap gap-2">
+                       {SCENARIO_SUGGESTIONS.formats
+                        .filter(f => selectedBuilderField === 'all' || f.field === selectedBuilderField)
+                        .map(f => (
+                          <button 
+                            key={f.text} 
+                            onClick={() => {
+                              setBuilderFormat(prev => prev ? prev + '\n' + f.text : f.text);
+                              if (selectedBuilderField === 'all') setSelectedBuilderField(f.field);
+                            }} 
+                            className={`text-[10px] px-3 py-1.5 rounded-xl border transition-all font-bold shadow-sm ${
+                              f.field === 'culture' ? 'bg-orange-50 text-orange-600 border-orange-100 hover:bg-orange-100' :
+                              f.field === 'legal' ? 'bg-indigo-50 text-indigo-600 border-indigo-100 hover:bg-indigo-100' :
+                              f.field === 'admin' ? 'bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100' :
+                              f.field === 'land' ? 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100' :
+                              'bg-cyan-50 text-cyan-600 border-cyan-100 hover:bg-cyan-100'
+                            }`}
+                          >
+                            +{f.text}
+                          </button>
+                        ))
+                      }
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4 pt-4">
+                    <button 
+                      onClick={handleGeneratePrompt}
+                      disabled={!builderRole || !builderTask}
+                      className="flex-[3] py-5 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white rounded-3xl font-black shadow-2xl shadow-blue-500/40 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-30 disabled:hover:scale-100 flex items-center justify-center gap-3 text-lg"
+                    >
+                      <Zap className="w-6 h-6 fill-white" /> XÁC NHẬN TẠO PROMPT
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setBuilderRole('');
+                        setBuilderContext('');
+                        setBuilderTask('');
+                        setBuilderFormat('');
+                        setGeneratedResult('');
+                        setSelectedBuilderField('all');
+                      }}
+                      className="flex-1 py-5 bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 rounded-3xl font-black hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-all active:scale-95 border border-transparent hover:border-red-200"
+                    >
+                      XÓA
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex flex-col h-full min-h-[500px]">
+                  <div className="flex items-center justify-between mb-4">
+                    <label className="block text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest px-1">Kết quả Prompt tối ưu</label>
+                    {generatedResult && (
+                      <span className="text-[10px] font-black text-blue-600 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-md animate-pulse">CẤU TRÚC ĐÃ SẴN SÀNG</span>
+                    )}
+                  </div>
+                  <div className="flex-1 bg-gray-50 dark:bg-gray-950/80 border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-[3rem] p-8 relative flex flex-col group/result shadow-inner">
+                    {generatedResult && (
+                      <button 
+                        onClick={() => copyToClipboard(generatedResult, 'builder-top')}
+                        className="absolute top-6 right-6 p-3 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-xl hover:scale-110 active:scale-95 transition-all z-20 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 group/copy-top"
+                        title="Sao chép nhanh"
+                      >
+                        {copiedId === 'builder-top' ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5 group-hover/copy-top:scale-110 transition-transform" />}
+                      </button>
+                    )}
+                    {!generatedResult ? (
+                      <div className="flex-1 flex flex-col items-center justify-center text-center opacity-30 select-none">
+                        <div className="w-20 h-20 bg-gray-200 dark:bg-gray-800 rounded-full flex items-center justify-center mb-6">
+                           <Cpu className="w-10 h-10 animate-bounce" />
+                        </div>
+                        <p className="text-base font-bold text-gray-600 dark:text-gray-400">Đang chờ <span className="text-blue-500">nguyên liệu</span> từ bạn...<br/><span className="text-xs font-medium opacity-60">Nhập thông tin bên trái để bắt đầu</span></p>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex-1 font-mono text-sm sm:text-base dark:text-gray-300 leading-relaxed overflow-y-auto whitespace-pre-wrap pr-3 custom-scrollbar scroll-smooth">
+                          {generatedResult}
+                        </div>
+                        <div className="mt-8 pt-8 border-t border-gray-100 dark:border-gray-800">
+                           <button 
+                            onClick={() => copyToClipboard(generatedResult, 'builder')}
+                            className="w-full py-5 bg-white dark:bg-gray-900 border-2 border-gray-100 dark:border-gray-800 text-gray-900 dark:text-white rounded-[2rem] font-black hover:border-blue-500 dark:hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition-all flex items-center justify-center gap-3 shadow-xl hover:shadow-blue-500/10 active:scale-95 group/btn"
+                          >
+                            <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center group-hover/btn:scale-110 transition-transform">
+                              {copiedId === 'builder' ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5 text-blue-500" />}
+                            </div>
+                            <span className="text-lg">{copiedId === 'builder' ? 'ĐÃ SAO CHÉP THÀNH CÔNG' : 'SAO CHÉP ĐỂ SỬ DỤNG'}</span>
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-32 text-center mb-20">
               <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-xl text-[10px] font-black uppercase tracking-widest mb-6">
                 Học Viện AI
               </div>
@@ -572,11 +1134,13 @@ export default function App() {
                 </div>
               ))}
             </div>
-          </div>
-        </section>
+          </section>
+        </div>
+      )}
+
 
         {/* AI Ecosystem Section */}
-        {!loading && !selectedCategoryId && !searchQuery && (
+        {!loading && activeView === 'home' && !selectedCategoryId && !searchQuery && (
           <section className="mt-32">
             <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4 px-2">
               <div className="max-w-2xl">
@@ -686,7 +1250,7 @@ export default function App() {
                             className="w-6 h-6 flex items-center justify-center text-xs font-bold text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 rounded-md transition-all"
                             title="Giảm cỡ chữ"
                           >
-                            -
+                            A-
                           </button>
                           <div className="w-[1px] h-3 bg-gray-300 dark:bg-gray-600 mx-1" />
                           <button 
@@ -694,7 +1258,7 @@ export default function App() {
                             className="w-6 h-6 flex items-center justify-center text-xs font-bold text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 rounded-md transition-all"
                             title="Tăng cỡ chữ"
                           >
-                            +
+                            A+
                           </button>
                         </div>
                       </div>
